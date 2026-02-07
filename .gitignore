@@ -1,0 +1,43 @@
+# .NET build outputs
+bin/
+obj/
+*.user
+*.suo
+
+# Visual Studio
+.vs/
+
+# Rider
+.idea/
+
+# User-specific files
+*.rsuser
+*.userosscache
+*.sln.docstates
+
+# Build results
+[Dd]ebug/
+[Rr]elease/
+x64/
+x86/
+[Aa]rm/
+[Aa]rm64/
+
+# NuGet
+*.nupkg
+*.snupkg
+packages/
+
+# Test results
+TestResults/
+*.trx
+
+# Claude Code workspace
+.claude/
+.opencode/
+memory-tool.db
+
+# Markdown (except README)
+*.md
+!README.md
+*.db

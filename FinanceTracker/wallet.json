@@ -1,0 +1,25 @@
+{
+  "Name": "Cash Wallet",
+  "Transactions": [
+    {
+      "Amount": -50.00,
+      "Description": "Coffee shop",
+      "Date": "2026-01-31T20:25:38.433544+01:00"
+    },
+    {
+      "Amount": 120.00,
+      "Description": "Electric bill",
+      "Date": "2026-01-31T20:25:38.4362017+01:00"
+    },
+    {
+      "Amount": 2500.00,
+      "Description": "Salary",
+      "Date": "2026-01-31T20:25:38.4362029+01:00"
+    },
+    {
+      "Amount": 30,
+      "Description": "",
+      "Date": "2026-02-01T12:28:54.396928+01:00"
+    }
+  ]
+}

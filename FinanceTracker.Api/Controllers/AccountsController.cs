@@ -24,7 +24,13 @@ public class AccountsController : ControllerBase
         if (id <= 0)
         {
             _logger.LogWarning("Invalid account id={Id} - must be positive", id);
-            return BadRequest("ID must be a positive number.");
+            return StatusCode(400,
+                new ErrorResponse
+                {
+                    Message = "ID must be a positive number.",
+                    StatusCode = 400
+                }
+            );
         }
         
         var account = await _context.Accounts
@@ -34,7 +40,13 @@ public class AccountsController : ControllerBase
         if (account == null)
         {
             _logger.LogWarning("Account id={Id} not found", id);
-            return NotFound();
+            return StatusCode(404,
+                new ErrorResponse
+                {
+                    Message = "Account not found.",
+                    StatusCode = 404
+                }
+            );
         }
         
         _logger.LogInformation("Account id={Id} found", id);
@@ -47,10 +59,22 @@ public class AccountsController : ControllerBase
         if (!ModelState.IsValid)
         {
             _logger.LogWarning("Invalid account creation request: {Errors}", ModelState);
-            return BadRequest(ModelState);
+            return StatusCode(422,
+                new ErrorResponse
+                {
+                    Message = "Invalid account creation request.",
+                    StatusCode = 422,
+                    Errors = ModelState
+                        .Where(kvp => kvp.Value?.Errors.Count > 0)
+                        .ToDictionary(
+                            kvp => kvp.Key,
+                            kvp => kvp.Value?.Errors.Select(e => e.ErrorMessage).ToList() ?? new List<string>()
+                        )
+                }
+            );
         }
 
-        var account = new Account(request.Name);
+        var account = new Account(request.Name!);
         
         _context.Accounts.Add(account);
 
@@ -62,6 +86,50 @@ public class AccountsController : ControllerBase
             nameof(GetAccount),
             new { id = account.Id },
             account
+        );
+    }
+
+    [HttpPost("{id}/transactions")]
+    public async Task<IActionResult> CreateTransaction(int id, [FromBody] CreateTransactionRequest request)
+    {
+        if (request.Amount == 0)
+        {
+            _logger.LogWarning("Transaction can't be 0.");
+            return StatusCode(422, 
+                new ErrorResponse
+                {
+                    Message = "Transaction can't be 0, select positive number for income or negative for expense.",
+                    StatusCode = 422
+                }
+            );
+        }    
+
+        var account = await _context.Accounts
+            .FirstOrDefaultAsync(account => account.Id == id);
+
+        if (account == null)
+        {
+            return StatusCode(404, 
+                new ErrorResponse
+                {
+                    Message = "Account not found.",
+                    StatusCode = 404
+                }
+            );
+        }
+
+        var transaction = new Transaction(request.Amount, request.Description, DateTime.UtcNow);
+
+        account.AddTransaction(transaction);
+
+        await _context.SaveChangesAsync();
+
+        _logger.LogInformation("Transaction created for account {Id}", id);
+
+        return CreatedAtAction(
+            nameof(GetAccount),
+            new { id = account.Id },
+            transaction
         );
     }
 }

@@ -35,7 +35,7 @@ public class AccountsController : ControllerBase
         
         var account = await _context.Accounts
             .Include(a => a.Transactions)
-            .FirstOrDefaultAsync(a => a.Id == id);
+            .FirstOrDefaultAsync(account => account.Id == id);
 
         if (account == null)
         {
@@ -104,8 +104,7 @@ public class AccountsController : ControllerBase
             );
         }    
 
-        var account = await _context.Accounts
-            .FirstOrDefaultAsync(account => account.Id == id);
+        var account = await _context.Accounts.FindAsync(id);
 
         if (account == null)
         {
@@ -131,5 +130,11 @@ public class AccountsController : ControllerBase
             new { id = account.Id },
             transaction
         );
+    }
+
+    [HttpGet("crash")]
+    public IActionResult Crash()
+    {
+        throw new Exception("Deliberate crash for testing");
     }
 }

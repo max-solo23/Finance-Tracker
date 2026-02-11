@@ -1,4 +1,5 @@
 using FinanceTracker.Api.DTOs;
+using FinanceTracker.Api.Middleware;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -15,6 +16,8 @@ builder.Services.AddDbContext<FinanceTrackerContext>(options =>
     options.UseSqlite("Data Source=../FinanceTracker/finance.db"));
 
 var app = builder.Build();
+
+app.UseMiddleware<GlobalExceptionHandler>();
 
 app.MapControllers();
 

@@ -131,10 +131,4 @@ public class AccountsController : ControllerBase
             transaction
         );
     }
-
-    [HttpGet("crash")]
-    public IActionResult Crash()
-    {
-        throw new Exception("Deliberate crash for testing");
-    }
 }

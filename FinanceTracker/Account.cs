@@ -3,7 +3,7 @@ using System.Text.Json.Serialization;
 
 public class Account : IAccount
 {
-    public string Name { get; private set; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
     [JsonInclude]
     public List<Transaction> Transactions { get; private set; } = new List<Transaction>();
     public event EventHandler? LowBalanceAlert;

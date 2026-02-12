@@ -131,4 +131,85 @@ public class AccountsController : ControllerBase
             transaction
         );
     }
+
+    [HttpPut("{id}")]
+    public async Task<IActionResult> UpdateAccount(int id, [FromBody] UpdateAccountRequest request)
+    {
+        if (id <= 0)
+        {
+            return StatusCode(400, new ErrorResponse
+            {
+                Message = "ID must be a positive number.",
+                StatusCode = 400
+            });
+        }
+
+        if (!ModelState.IsValid)
+        {
+            return StatusCode(422, new ErrorResponse
+            {
+                Message = "Invalid account update request.",
+                StatusCode = 422,
+                Errors = ModelState
+                    .Where(kvp => kvp.Value?.Errors.Count > 0)
+                    .ToDictionary(
+                        kvp => kvp.Key,
+                        kvp => kvp.Value?.Errors.Select(e => e.ErrorMessage).ToList() ?? new List<string>()
+                    )
+            });
+        }
+
+        var account = await _context.Accounts.FindAsync(id);
+
+        if (account == null)
+        {
+            _logger.LogWarning("Account id={Id} not found for update", id);
+            return StatusCode(404, new ErrorResponse
+            {
+                Message = "Account not found.",
+                StatusCode = 404
+            });
+        }
+
+        account.Name = request.Name!;
+
+        await _context.SaveChangesAsync();
+
+        _logger.LogInformation("Account id={Id} updated to name Name={Name}", id, account.Name);
+
+        return Ok(account);
+    }
+
+    [HttpDelete("{id}")]
+    public async Task<IActionResult> DeleteAccount(int id)
+    {
+        if (id <= 0)
+        {
+            return StatusCode(400, new ErrorResponse
+            {
+                Message = "ID must be a positive number.",
+                StatusCode = 400
+            });
+        }
+
+        var account = await _context.Accounts.FindAsync(id);
+
+        if (account == null)
+        {
+            _logger.LogWarning("Account id={Id} not found for deletion.", id);
+            return StatusCode(404, new ErrorResponse
+            {
+                Message = "Account not found.",
+                StatusCode = 404
+            });
+        }
+
+        _context.Accounts.Remove(account);
+
+        await _context.SaveChangesAsync();
+
+        _logger.LogInformation("Account id={Id} deleted.", id);
+
+        return NoContent();
+    }
 }

@@ -212,4 +212,35 @@ public class AccountsController : ControllerBase
 
         return NoContent();
     }
+
+    [HttpPost("bulk-validate")]
+    public async Task<IActionResult> BulkValidateAccount([FromBody] BulkValidateRequest request)
+    {
+        if (!ModelState.IsValid)
+        {
+            return StatusCode(422, new ErrorResponse
+            {
+                Message = "Invalid request.",
+                StatusCode = 422
+            });
+        }
+
+        if (request.AccountIds.Any(id => id <= 0))
+        {
+            return BadRequest(new ErrorResponse
+            {
+                Message = "All IDs must be positive.",
+                StatusCode = 400
+            });
+        }
+
+        var existingIds = await _context.Accounts
+            .Where(account => request.AccountIds.Contains(account.Id))
+            .Select(account => account.Id)
+            .ToListAsync();
+
+        var missingIds = request.AccountIds.Except(existingIds).ToList();
+
+        return Ok(new { existing = existingIds, missing = missingIds });
+    } 
 }

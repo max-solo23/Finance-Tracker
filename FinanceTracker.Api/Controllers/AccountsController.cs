@@ -1,5 +1,6 @@
 using System.Threading.Tasks;
 using FinanceTracker.Api.DTOs;
+using FinanceTracker.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -242,5 +243,71 @@ public class AccountsController : ControllerBase
         var missingIds = request.AccountIds.Except(existingIds).ToList();
 
         return Ok(new { existing = existingIds, missing = missingIds });
-    } 
+    }
+
+    [HttpPost("transfer")]
+    public async Task<IActionResult> Transfer([FromBody] TransferRequest request)
+    {
+        var existingTransfer = await _context.Transfers
+            .FirstOrDefaultAsync(t => t.IdempotencyKey == request.IdempotencyKey);
+
+        if (existingTransfer != null)
+        {
+            return Ok(new { message = "Transfer already processed", transferId = existingTransfer.Id });
+        }
+
+        var fromAccount = await _context.Accounts.FindAsync(request.FromAccountId);
+        var toAccount = await _context.Accounts.FindAsync(request.ToAccountId);
+
+        if (fromAccount == null)
+        {
+            return NotFound(new ErrorResponse
+            {
+                Message = "From account not found",
+                StatusCode = 404,
+                Errors = new Dictionary<string, List<string>>
+                {
+                    ["FromAccountId"] = new List<string> { $"Account {request.FromAccountId} does not exist" }
+                }
+            });
+        }
+
+        if (toAccount == null)
+        {
+            return NotFound(new ErrorResponse
+            {
+                Message = "To account not found",
+                StatusCode = 404,
+                Errors = new Dictionary<string, List<string>>
+                {
+                    ["ToAccountId"] = new List<string> { $"Account {request.ToAccountId} does not exist"}
+                }
+            });
+        }
+
+        var transfer = new Transfer
+        {
+            FromAccountId = request.FromAccountId,
+            ToAccountId = request.ToAccountId,
+            Amount = request.Amount,
+            Description = request.Description,
+            ProcessAt = DateTime.UtcNow,
+            IdempotencyKey = request.IdempotencyKey
+        };
+
+        _context.Transfers.Add(transfer);
+
+        try
+        {
+            await _context.SaveChangesAsync();
+            return Ok(new { message = "Transfer successful", transferId = transfer.Id});
+        }
+        catch (DbUpdateException)
+        {
+            existingTransfer = await _context.Transfers
+                .FirstOrDefaultAsync(t => t.IdempotencyKey == request.IdempotencyKey);
+
+            return Ok(new { message = "Transfer already processed", transferId = existingTransfer!.Id });
+        }
+    }
 }

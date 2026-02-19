@@ -1,5 +1,5 @@
 using System.Threading.Tasks;
-using FinanceTracker.Api.DTOs;
+using FinanceTracker.Api.Application.DTOs;
 using FinanceTracker.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;

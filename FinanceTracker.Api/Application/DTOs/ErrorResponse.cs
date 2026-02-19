@@ -1,4 +1,4 @@
-namespace FinanceTracker.Api.DTOs;
+namespace FinanceTracker.Api.Application.DTOs;
 
 public class ErrorResponse
 {

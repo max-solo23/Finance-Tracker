@@ -1,4 +1,4 @@
-using FinanceTracker.Api.DTOs;
+using FinanceTracker.Api.Application.DTOs;
 using FinanceTracker.Api.Middleware;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;

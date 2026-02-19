@@ -1,5 +1,5 @@
 using System.Text.Json;
-using FinanceTracker.Api.DTOs;
+using FinanceTracker.Api.Application.DTOs;
 
 namespace FinanceTracker.Api.Middleware;
 

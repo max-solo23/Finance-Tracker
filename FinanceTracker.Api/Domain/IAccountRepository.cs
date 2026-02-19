@@ -7,5 +7,5 @@ public interface IAccountRepository
     Task<Account> Create(string name);
     Task<Account?> Update(int id, string name);
     Task Delete(int id);
-    Task<List<bool>> ExistsByIds(List<int> ids);
+    Task<List<int>> ExistsByIds(List<int> ids);
 }

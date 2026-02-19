@@ -1,7 +1,10 @@
 using FinanceTracker.Api.Application.DTOs;
+using FinanceTracker.Api.Domain;
 using FinanceTracker.Api.Middleware;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Internal;
+using FinanceTracker.Api.Infrastructure;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -14,6 +17,8 @@ builder.Services.Configure<ApiBehaviorOptions>(options =>
 
 builder.Services.AddDbContext<FinanceTrackerContext>(options => 
     options.UseSqlite("Data Source=../FinanceTracker/finance.db"));
+
+builder.Services.AddScoped<IAccountRepository, AccountRepository>();
 
 var app = builder.Build();
 

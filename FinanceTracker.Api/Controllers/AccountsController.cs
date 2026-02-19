@@ -1,5 +1,6 @@
 using System.Threading.Tasks;
 using FinanceTracker.Api.Application.DTOs;
+using FinanceTracker.Api.Domain;
 using FinanceTracker.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -11,12 +12,14 @@ namespace FinanceTracker.Api.Controllers;
 public class AccountsController : ControllerBase
 {
     private readonly ILogger<AccountsController> _logger;
-    private readonly FinanceTrackerContext _context;
+    private readonly IAccountRepository _context;
+    private readonly FinanceTrackerContext _financeTrackerContext;
 
-    public AccountsController(ILogger<AccountsController> logger, FinanceTrackerContext context)
+    public AccountsController(ILogger<AccountsController> logger, IAccountRepository context, FinanceTrackerContext financeTrackerContext)
     {
         _logger = logger;
         _context = context;
+        _financeTrackerContext = financeTrackerContext;
     }
 
     [HttpGet("{id}")]
@@ -34,9 +37,7 @@ public class AccountsController : ControllerBase
             );
         }
         
-        var account = await _context.Accounts
-            .Include(a => a.Transactions)
-            .FirstOrDefaultAsync(account => account.Id == id);
+        var account = await _context.GetById(id);
 
         if (account == null)
         {
@@ -75,11 +76,7 @@ public class AccountsController : ControllerBase
             );
         }
 
-        var account = new Account(request.Name!);
-        
-        _context.Accounts.Add(account);
-
-        await _context.SaveChangesAsync();
+        var account = await _context.Create(request.Name!);
 
         _logger.LogInformation("Account created Id={Id}, Name={Name}", account.Id, account.Name);
 
@@ -105,7 +102,7 @@ public class AccountsController : ControllerBase
             );
         }    
 
-        var account = await _context.Accounts.FindAsync(id);
+        var account = await _context.GetById(id);
 
         if (account == null)
         {
@@ -122,7 +119,7 @@ public class AccountsController : ControllerBase
 
         account.AddTransaction(transaction);
 
-        await _context.SaveChangesAsync();
+        await _financeTrackerContext.SaveChangesAsync();
 
         _logger.LogInformation("Transaction created for account {Id}", id);
 
@@ -160,7 +157,7 @@ public class AccountsController : ControllerBase
             });
         }
 
-        var account = await _context.Accounts.FindAsync(id);
+        var account = await _context.Update(id, request.Name!);
 
         if (account == null)
         {
@@ -174,7 +171,7 @@ public class AccountsController : ControllerBase
 
         account.Name = request.Name!;
 
-        await _context.SaveChangesAsync();
+        await _financeTrackerContext.SaveChangesAsync();
 
         _logger.LogInformation("Account id={Id} updated to name Name={Name}", id, account.Name);
 
@@ -193,7 +190,7 @@ public class AccountsController : ControllerBase
             });
         }
 
-        var account = await _context.Accounts.FindAsync(id);
+        var account = await _financeTrackerContext.Accounts.FindAsync(id);
 
         if (account == null)
         {
@@ -205,9 +202,9 @@ public class AccountsController : ControllerBase
             });
         }
 
-        _context.Accounts.Remove(account);
+        await _context.Delete(id);
 
-        await _context.SaveChangesAsync();
+        await _financeTrackerContext.SaveChangesAsync();
 
         _logger.LogInformation("Account id={Id} deleted.", id);
 
@@ -235,10 +232,7 @@ public class AccountsController : ControllerBase
             });
         }
 
-        var existingIds = await _context.Accounts
-            .Where(account => request.AccountIds.Contains(account.Id))
-            .Select(account => account.Id)
-            .ToListAsync();
+        var existingIds = await _context.ExistsByIds(request.AccountIds.ToList());
 
         var missingIds = request.AccountIds.Except(existingIds).ToList();
 
@@ -248,7 +242,7 @@ public class AccountsController : ControllerBase
     [HttpPost("transfer")]
     public async Task<IActionResult> Transfer([FromBody] TransferRequest request)
     {
-        var existingTransfer = await _context.Transfers
+        var existingTransfer = await _financeTrackerContext.Transfers
             .FirstOrDefaultAsync(t => t.IdempotencyKey == request.IdempotencyKey);
 
         if (existingTransfer != null)
@@ -256,8 +250,8 @@ public class AccountsController : ControllerBase
             return Ok(new { message = "Transfer already processed", transferId = existingTransfer.Id });
         }
 
-        var fromAccount = await _context.Accounts.FindAsync(request.FromAccountId);
-        var toAccount = await _context.Accounts.FindAsync(request.ToAccountId);
+        var fromAccount = await _context.GetById(request.FromAccountId);
+        var toAccount = await _context.GetById(request.ToAccountId);
 
         if (fromAccount == null)
         {
@@ -295,16 +289,16 @@ public class AccountsController : ControllerBase
             IdempotencyKey = request.IdempotencyKey
         };
 
-        _context.Transfers.Add(transfer);
+        _financeTrackerContext.Transfers.Add(transfer);
 
         try
         {
-            await _context.SaveChangesAsync();
+            await _financeTrackerContext.SaveChangesAsync();
             return Ok(new { message = "Transfer successful", transferId = transfer.Id});
         }
         catch (DbUpdateException)
         {
-            existingTransfer = await _context.Transfers
+            existingTransfer = await _financeTrackerContext.Transfers
                 .FirstOrDefaultAsync(t => t.IdempotencyKey == request.IdempotencyKey);
 
             return Ok(new { message = "Transfer already processed", transferId = existingTransfer!.Id });

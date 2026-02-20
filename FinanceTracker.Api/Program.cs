@@ -19,6 +19,7 @@ builder.Services.AddDbContext<FinanceTrackerContext>(options =>
     options.UseSqlite("Data Source=../FinanceTracker/finance.db"));
 
 builder.Services.AddScoped<IAccountRepository, AccountRepository>();
+builder.Services.AddScoped<ITransactionRepository, TransactionRepository>();
 
 var app = builder.Build();
 

@@ -23,20 +23,17 @@ public class AccountRepository : IAccountRepository
         return account;
     }
 
-    public async Task Delete(int id)
+    public async Task<bool> Delete(int id)
     {
         var account = await _context.Accounts.FindAsync(id);
 
-        if (account == null)
-        {
-            return;
-        }
+        if (account == null) return false;
 
         _context.Accounts.Remove(account);
 
         await _context.SaveChangesAsync();
 
-        return;
+        return true;
     }
 
     public async Task<List<int>> ExistsByIds(List<int> ids)
@@ -69,10 +66,7 @@ public class AccountRepository : IAccountRepository
     {
         var account = await _context.Accounts.FindAsync(id);
 
-        if (account == null)
-        {
-            return null;
-        }
+        if (account == null) return null;
 
         account.Name = name;
 

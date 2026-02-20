@@ -12,13 +12,20 @@ namespace FinanceTracker.Api.Controllers;
 public class AccountsController : ControllerBase
 {
     private readonly ILogger<AccountsController> _logger;
-    private readonly IAccountRepository _context;
+    private readonly IAccountRepository _accountRepository;
+    private readonly ITransactionRepository _transactionRepository;
     private readonly FinanceTrackerContext _financeTrackerContext;
 
-    public AccountsController(ILogger<AccountsController> logger, IAccountRepository context, FinanceTrackerContext financeTrackerContext)
+    public AccountsController(
+        ILogger<AccountsController> logger, 
+        IAccountRepository accountRepository, 
+        ITransactionRepository transactionRepository, 
+        FinanceTrackerContext financeTrackerContext
+    )
     {
         _logger = logger;
-        _context = context;
+        _accountRepository = accountRepository;
+        _transactionRepository = transactionRepository;
         _financeTrackerContext = financeTrackerContext;
     }
 
@@ -37,7 +44,7 @@ public class AccountsController : ControllerBase
             );
         }
         
-        var account = await _context.GetById(id);
+        var account = await _accountRepository.GetById(id);
 
         if (account == null)
         {
@@ -76,7 +83,7 @@ public class AccountsController : ControllerBase
             );
         }
 
-        var account = await _context.Create(request.Name!);
+        var account = await _accountRepository.Create(request.Name!);
 
         _logger.LogInformation("Account created Id={Id}, Name={Name}", account.Id, account.Name);
 
@@ -102,7 +109,7 @@ public class AccountsController : ControllerBase
             );
         }    
 
-        var account = await _context.GetById(id);
+        var account = await _accountRepository.GetById(id);
 
         if (account == null)
         {
@@ -115,11 +122,7 @@ public class AccountsController : ControllerBase
             );
         }
 
-        var transaction = new Transaction(request.Amount, request.Description, DateTime.UtcNow);
-
-        account.AddTransaction(transaction);
-
-        await _financeTrackerContext.SaveChangesAsync();
+        var transaction = await _transactionRepository.Create(id, request.Amount, request.Description);
 
         _logger.LogInformation("Transaction created for account {Id}", id);
 
@@ -157,7 +160,7 @@ public class AccountsController : ControllerBase
             });
         }
 
-        var account = await _context.Update(id, request.Name!);
+        var account = await _accountRepository.Update(id, request.Name!);
 
         if (account == null)
         {
@@ -168,10 +171,6 @@ public class AccountsController : ControllerBase
                 StatusCode = 404
             });
         }
-
-        account.Name = request.Name!;
-
-        await _financeTrackerContext.SaveChangesAsync();
 
         _logger.LogInformation("Account id={Id} updated to name Name={Name}", id, account.Name);
 
@@ -190,9 +189,9 @@ public class AccountsController : ControllerBase
             });
         }
 
-        var account = await _financeTrackerContext.Accounts.FindAsync(id);
+        var accountDeleted = await _accountRepository.Delete(id);
 
-        if (account == null)
+        if (!accountDeleted)
         {
             _logger.LogWarning("Account id={Id} not found for deletion.", id);
             return StatusCode(404, new ErrorResponse
@@ -201,10 +200,6 @@ public class AccountsController : ControllerBase
                 StatusCode = 404
             });
         }
-
-        await _context.Delete(id);
-
-        await _financeTrackerContext.SaveChangesAsync();
 
         _logger.LogInformation("Account id={Id} deleted.", id);
 
@@ -232,7 +227,7 @@ public class AccountsController : ControllerBase
             });
         }
 
-        var existingIds = await _context.ExistsByIds(request.AccountIds.ToList());
+        var existingIds = await _accountRepository.ExistsByIds(request.AccountIds.ToList());
 
         var missingIds = request.AccountIds.Except(existingIds).ToList();
 
@@ -250,8 +245,8 @@ public class AccountsController : ControllerBase
             return Ok(new { message = "Transfer already processed", transferId = existingTransfer.Id });
         }
 
-        var fromAccount = await _context.GetById(request.FromAccountId);
-        var toAccount = await _context.GetById(request.ToAccountId);
+        var fromAccount = await _accountRepository.GetById(request.FromAccountId);
+        var toAccount = await _accountRepository.GetById(request.ToAccountId);
 
         if (fromAccount == null)
         {

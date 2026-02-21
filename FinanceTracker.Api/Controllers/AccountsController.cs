@@ -1,4 +1,5 @@
 using System.Threading.Tasks;
+using FinanceTracker.Api.Application;
 using FinanceTracker.Api.Application.DTOs;
 using FinanceTracker.Api.Domain;
 using FinanceTracker.Models;
@@ -12,19 +13,19 @@ namespace FinanceTracker.Api.Controllers;
 public class AccountsController : ControllerBase
 {
     private readonly ILogger<AccountsController> _logger;
-    private readonly IAccountRepository _accountRepository;
+    private readonly IAccountService _accountService;
     private readonly ITransactionRepository _transactionRepository;
     private readonly FinanceTrackerContext _financeTrackerContext;
 
     public AccountsController(
         ILogger<AccountsController> logger, 
-        IAccountRepository accountRepository, 
+        IAccountService accountService, 
         ITransactionRepository transactionRepository, 
         FinanceTrackerContext financeTrackerContext
     )
     {
         _logger = logger;
-        _accountRepository = accountRepository;
+        _accountService = accountService;
         _transactionRepository = transactionRepository;
         _financeTrackerContext = financeTrackerContext;
     }
@@ -44,7 +45,7 @@ public class AccountsController : ControllerBase
             );
         }
         
-        var account = await _accountRepository.GetById(id);
+        var account = await _accountService.GetById(id);
 
         if (account == null)
         {
@@ -83,7 +84,7 @@ public class AccountsController : ControllerBase
             );
         }
 
-        var account = await _accountRepository.Create(request.Name!);
+        var account = await _accountService.Create(request.Name!);
 
         _logger.LogInformation("Account created Id={Id}, Name={Name}", account.Id, account.Name);
 
@@ -109,7 +110,7 @@ public class AccountsController : ControllerBase
             );
         }    
 
-        var account = await _accountRepository.GetById(id);
+        var account = await _accountService.GetById(id);
 
         if (account == null)
         {
@@ -160,7 +161,7 @@ public class AccountsController : ControllerBase
             });
         }
 
-        var account = await _accountRepository.Update(id, request.Name!);
+        var account = await _accountService.Update(id, request.Name!);
 
         if (account == null)
         {
@@ -189,7 +190,7 @@ public class AccountsController : ControllerBase
             });
         }
 
-        var accountDeleted = await _accountRepository.Delete(id);
+        var accountDeleted = await _accountService.Delete(id);
 
         if (!accountDeleted)
         {
@@ -227,7 +228,7 @@ public class AccountsController : ControllerBase
             });
         }
 
-        var existingIds = await _accountRepository.ExistsByIds(request.AccountIds.ToList());
+        var existingIds = await _accountService.ExistsByIds(request.AccountIds.ToList());
 
         var missingIds = request.AccountIds.Except(existingIds).ToList();
 
@@ -245,8 +246,8 @@ public class AccountsController : ControllerBase
             return Ok(new { message = "Transfer already processed", transferId = existingTransfer.Id });
         }
 
-        var fromAccount = await _accountRepository.GetById(request.FromAccountId);
-        var toAccount = await _accountRepository.GetById(request.ToAccountId);
+        var fromAccount = await _accountService.GetById(request.FromAccountId);
+        var toAccount = await _accountService.GetById(request.ToAccountId);
 
         if (fromAccount == null)
         {

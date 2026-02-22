@@ -6,10 +6,12 @@ namespace FinanceTracker.Api.Infrastructure;
 public class TransactionRepository : ITransactionRepository
 {
     private readonly FinanceTrackerContext _context;
+
     public TransactionRepository(FinanceTrackerContext financeTrackerContext)
     {
         _context = financeTrackerContext;
     }
+    
     public async Task<Transaction> Create(int accountId, decimal amount, string description)
     {
         var account = await _context.Accounts.FindAsync(accountId);

@@ -1,10 +1,7 @@
-using System.Threading.Tasks;
 using FinanceTracker.Api.Application;
 using FinanceTracker.Api.Application.DTOs;
 using FinanceTracker.Api.Domain;
-using FinanceTracker.Models;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 
 namespace FinanceTracker.Api.Controllers;
 
@@ -15,19 +12,19 @@ public class AccountsController : ControllerBase
     private readonly ILogger<AccountsController> _logger;
     private readonly IAccountService _accountService;
     private readonly ITransactionRepository _transactionRepository;
-    private readonly FinanceTrackerContext _financeTrackerContext;
+    private readonly ITransferRepository _transferRepository;
 
     public AccountsController(
         ILogger<AccountsController> logger, 
         IAccountService accountService, 
         ITransactionRepository transactionRepository, 
-        FinanceTrackerContext financeTrackerContext
+        ITransferRepository transferRepository
     )
     {
         _logger = logger;
         _accountService = accountService;
         _transactionRepository = transactionRepository;
-        _financeTrackerContext = financeTrackerContext;
+        _transferRepository = transferRepository;
     }
 
     [HttpGet("{id}")]
@@ -238,8 +235,7 @@ public class AccountsController : ControllerBase
     [HttpPost("transfer")]
     public async Task<IActionResult> Transfer([FromBody] TransferRequest request)
     {
-        var existingTransfer = await _financeTrackerContext.Transfers
-            .FirstOrDefaultAsync(t => t.IdempotencyKey == request.IdempotencyKey);
+        var existingTransfer = await _transferRepository.GetByIdempotencyKey(request.IdempotencyKey);
 
         if (existingTransfer != null)
         {
@@ -275,29 +271,14 @@ public class AccountsController : ControllerBase
             });
         }
 
-        var transfer = new Transfer
-        {
-            FromAccountId = request.FromAccountId,
-            ToAccountId = request.ToAccountId,
-            Amount = request.Amount,
-            Description = request.Description,
-            ProcessAt = DateTime.UtcNow,
-            IdempotencyKey = request.IdempotencyKey
-        };
-
-        _financeTrackerContext.Transfers.Add(transfer);
-
-        try
-        {
-            await _financeTrackerContext.SaveChangesAsync();
-            return Ok(new { message = "Transfer successful", transferId = transfer.Id});
-        }
-        catch (DbUpdateException)
-        {
-            existingTransfer = await _financeTrackerContext.Transfers
-                .FirstOrDefaultAsync(t => t.IdempotencyKey == request.IdempotencyKey);
-
-            return Ok(new { message = "Transfer already processed", transferId = existingTransfer!.Id });
-        }
+        var transfer = await _transferRepository.Create(
+            request.FromAccountId,
+            request.ToAccountId,
+            request.Amount,
+            request.Description,
+            request.IdempotencyKey
+        );
+        
+        return Ok(new { message = "Transfer successful", transferId = transfer.Id});
     }
 }

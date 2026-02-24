@@ -1,10 +1,12 @@
 using FinanceTracker.Api.Application;
 using FinanceTracker.Api.Application.DTOs;
 using FinanceTracker.Api.Domain;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace FinanceTracker.Api.Controllers;
 
+[Authorize]
 [ApiController]
 [Route("api/[controller]")]
 public class AccountsController : ControllerBase

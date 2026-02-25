@@ -39,8 +39,10 @@ builder.Services.Configure<ApiBehaviorOptions>(options =>
     options.SuppressModelStateInvalidFilter = true;
 });
 
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+
 builder.Services.AddDbContext<FinanceTrackerContext>(options => 
-    options.UseSqlite("Data Source=../FinanceTracker/finance.db"));
+    options.UseSqlite(connectionString));
 
 builder.Services.AddScoped<IAccountRepository, AccountRepository>();
 builder.Services.AddScoped<ITransactionRepository, TransactionRepository>();

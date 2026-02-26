@@ -1,0 +1,9 @@
+services:
+  api:
+    build: .
+    ports:
+      - "5029:8080"
+    volumes:
+      - "./data:/app/data"
+    environment:
+      - ConnectionStrings__DefaultConnection=Data Source=/app/data/finance.db

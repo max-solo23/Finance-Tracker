@@ -62,6 +62,13 @@ public class AccountsController : ControllerBase
         return Ok(account);
     }
 
+    [HttpGet]
+    public async Task<IActionResult> GetAccounts()
+    {
+        var accounts = await _accountService.GetAll();
+        return Ok(accounts);
+    }
+
     [HttpPost]
     public async Task<IActionResult> CreateAccount([FromBody] CreateAccountRequest request)
     {

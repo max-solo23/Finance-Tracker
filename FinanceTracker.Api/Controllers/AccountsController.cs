@@ -66,6 +66,7 @@ public class AccountsController : ControllerBase
     public async Task<IActionResult> GetAccounts()
     {
         var accounts = await _accountService.GetAll();
+        _logger.LogInformation("Accounts count: {Accounts}", accounts.Count());
         return Ok(accounts);
     }
 
@@ -120,6 +121,7 @@ public class AccountsController : ControllerBase
 
         if (account == null)
         {
+            _logger.LogWarning("Account id={Id} not found", id);
             return StatusCode(404, 
                 new ErrorResponse
                 {
@@ -145,6 +147,7 @@ public class AccountsController : ControllerBase
     {
         if (id <= 0)
         {
+            _logger.LogWarning("Invalid account id={Id}", id);
             return StatusCode(400, new ErrorResponse
             {
                 Message = "ID must be a positive number.",
@@ -154,6 +157,7 @@ public class AccountsController : ControllerBase
 
         if (!ModelState.IsValid)
         {
+            _logger.LogWarning("Invalid update request for account id={Id}", id);
             return StatusCode(422, new ErrorResponse
             {
                 Message = "Invalid account update request.",
@@ -179,7 +183,7 @@ public class AccountsController : ControllerBase
             });
         }
 
-        _logger.LogInformation("Account id={Id} updated to name Name={Name}", id, account.Name);
+        _logger.LogInformation("Account id={Id} updated to Name={Name}", id, account.Name);
 
         return Ok(account);
     }
@@ -189,6 +193,7 @@ public class AccountsController : ControllerBase
     {
         if (id <= 0)
         {
+            _logger.LogWarning("Invalid id={Id} for delete request", id);
             return StatusCode(400, new ErrorResponse
             {
                 Message = "ID must be a positive number.",
@@ -218,6 +223,7 @@ public class AccountsController : ControllerBase
     {
         if (!ModelState.IsValid)
         {
+            _logger.LogWarning("Invalid bulk validate request");
             return StatusCode(422, new ErrorResponse
             {
                 Message = "Invalid request.",
@@ -227,6 +233,7 @@ public class AccountsController : ControllerBase
 
         if (request.AccountIds.Any(id => id <= 0))
         {
+            
             return BadRequest(new ErrorResponse
             {
                 Message = "All IDs must be positive.",

@@ -10,17 +10,28 @@ using Microsoft.IdentityModel.Tokens;
 public class AuthController : ControllerBase
 {
     private readonly IConfiguration _configuration;
+    private readonly ILogger<AuthController> _logger;
 
-    public AuthController(IConfiguration configuration)
+    public AuthController(IConfiguration configuration, ILogger<AuthController> logger)
     {
         _configuration = configuration;
+        _logger = logger;
     }
 
     [HttpPost("login")]
     public IActionResult Login([FromBody] LoginRequest request)
     {
-        if ( request.Email != "admin@test.com") return Unauthorized();
-        if ( request.Password != "password123") return Unauthorized();
+        if ( request.Email != "admin@test.com")
+        {
+            _logger.LogWarning("Login failed for {Email} - user not found", request.Email);
+            return Unauthorized();            
+        }
+
+        if ( request.Password != "password123")
+        {
+            _logger.LogWarning("Login failed for {Email} - wrong password", request.Email);
+            return Unauthorized();    
+        }
 
         var jwtSettings = _configuration.GetSection("JwtSettings");
 
@@ -42,6 +53,8 @@ public class AuthController : ControllerBase
             expires: DateTime.UtcNow.AddHours(1),
             signingCredentials: creds
         );
+
+        _logger.LogInformation("User {Email} successfully logged in", request.Email);
 
         return Ok(new { token = new JwtSecurityTokenHandler().WriteToken(token)});
     }

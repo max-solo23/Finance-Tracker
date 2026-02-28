@@ -27,7 +27,7 @@ public class GlobalExceptionHandler
         }
         catch (Exception exception)
         {
-            _logger.LogCritical($"Internal critical error: {exception.Message}");
+            _logger.LogCritical(exception, "Internal server error");
 
             context.Response.StatusCode = 500;
             context.Response.ContentType = "application/json";

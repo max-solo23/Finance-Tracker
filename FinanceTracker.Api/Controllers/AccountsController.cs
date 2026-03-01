@@ -66,7 +66,7 @@ public class AccountsController : ControllerBase
     public async Task<IActionResult> GetAccounts()
     {
         var accounts = await _accountService.GetAll();
-        _logger.LogInformation("Accounts count: {Accounts}", accounts.Count());
+        _logger.LogInformation("Accounts count: {Count}", accounts.Count());
         return Ok(accounts);
     }
 
@@ -233,7 +233,8 @@ public class AccountsController : ControllerBase
 
         if (request.AccountIds.Any(id => id <= 0))
         {
-            
+            var invalidIdsString = string.Join(", ", request.AccountIds.Where(id => id <= 0).ToList());
+            _logger.LogWarning("Invalid ids: {InvalidIds}", invalidIdsString);
             return BadRequest(new ErrorResponse
             {
                 Message = "All IDs must be positive.",
@@ -245,6 +246,10 @@ public class AccountsController : ControllerBase
 
         var missingIds = request.AccountIds.Except(existingIds).ToList();
 
+        _logger.LogInformation(
+            "Bulk validate response: existing ids count: {ExistingCount}, missing ids count: {MissingCount}", 
+            existingIds.Count(), 
+            missingIds.Count());
         return Ok(new { existing = existingIds, missing = missingIds });
     }
 
@@ -255,6 +260,7 @@ public class AccountsController : ControllerBase
 
         if (existingTransfer != null)
         {
+            _logger.LogWarning("Transfer already processed idempotency key={IdempotencyKey}", request.IdempotencyKey);
             return Ok(new { message = "Transfer already processed", transferId = existingTransfer.Id });
         }
 
@@ -263,6 +269,7 @@ public class AccountsController : ControllerBase
 
         if (fromAccount == null)
         {
+            _logger.LogWarning("From account id={Id} not found", request.FromAccountId);
             return NotFound(new ErrorResponse
             {
                 Message = "From account not found",
@@ -276,6 +283,7 @@ public class AccountsController : ControllerBase
 
         if (toAccount == null)
         {
+            _logger.LogWarning("To account id={Id} not found", request.ToAccountId);
             return NotFound(new ErrorResponse
             {
                 Message = "To account not found",
@@ -294,7 +302,7 @@ public class AccountsController : ControllerBase
             request.Description,
             request.IdempotencyKey
         );
-        
+        _logger.LogInformation("Transfer successful id={Id}", transfer.Id);
         return Ok(new { message = "Transfer successful", transferId = transfer.Id});
     }
 }

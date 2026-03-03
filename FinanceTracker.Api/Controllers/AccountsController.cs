@@ -142,6 +142,35 @@ public class AccountsController : ControllerBase
         );
     }
 
+    [HttpGet("{id}/transactions")]
+    public async Task<IActionResult> GetAllTransactions(int id)
+    {
+        if (id <= 0)
+        {
+            _logger.LogWarning("Invalid account id={Id}", id);
+            return StatusCode(400, new ErrorResponse
+            {
+                Message = "ID must be positive number",
+                StatusCode = 400
+            });
+        }
+
+        var account = await _accountService.GetById(id);
+
+        if (account == null)
+        {
+            _logger.LogWarning("Account id={Id} not found", id);
+            return StatusCode(404, new ErrorResponse
+            {
+                Message = "Account not found",
+                StatusCode = 404
+            });
+        }
+
+        _logger.LogInformation("Successfully found transactions for account id={Id}", id);
+        return Ok(account.Transactions.ToList());
+    }
+
     [HttpPut("{id}")]
     public async Task<IActionResult> UpdateAccount(int id, [FromBody] UpdateAccountRequest request)
     {

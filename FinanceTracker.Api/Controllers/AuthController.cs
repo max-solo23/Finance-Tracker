@@ -24,13 +24,21 @@ public class AuthController : ControllerBase
         if ( request.Email != "admin@test.com")
         {
             _logger.LogWarning("Login failed for {Email} - user not found", request.Email);
-            return Unauthorized();            
+            return Unauthorized(new ErrorResponse
+            {
+                Message = "Invalid credentials",
+                StatusCode = 401
+            });            
         }
 
         if ( request.Password != "password123")
         {
             _logger.LogWarning("Login failed for {Email} - wrong password", request.Email);
-            return Unauthorized();    
+            return Unauthorized(new ErrorResponse
+            {
+                Message = "Invalid credentials",
+                StatusCode = 401
+            });    
         }
 
         var jwtSettings = _configuration.GetSection("JwtSettings");

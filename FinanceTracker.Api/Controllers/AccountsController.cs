@@ -247,6 +247,22 @@ public class AccountsController : ControllerBase
         return NoContent();
     }
 
+    [HttpDelete("{accountId}/transactions/{transactionId}")]
+    public async Task<IActionResult> DeleteTransaction(int accountId, int transactionId)
+    {
+        var transactionDeleted = await _transactionRepository.Delete(accountId, transactionId);
+
+        if (!transactionDeleted)
+        {
+            _logger.LogWarning(
+                "Account id={AccountId} or Transaction id={TransactionId} invalid.", accountId, transactionId);
+            return NotFound();
+        }
+
+        _logger.LogInformation("Transaction id={TransactionId} deleted.", transactionId);
+        return NoContent();
+    }
+
     [HttpPost("bulk-validate")]
     public async Task<IActionResult> BulkValidateAccount([FromBody] BulkValidateRequest request)
     {

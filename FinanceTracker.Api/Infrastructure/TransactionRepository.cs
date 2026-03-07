@@ -30,6 +30,19 @@ public class TransactionRepository : ITransactionRepository
         return transaction;
     }
 
+    public async Task<bool> Delete(int accountId, int transactionId)
+    {
+        var transactionToDelete = await _context.Transactions
+            .Where(t => t.Id == transactionId && t.AccountId == accountId)
+            .FirstOrDefaultAsync();
+
+        if (transactionToDelete == null) return false;
+
+        _context.Transactions.Remove(transactionToDelete);
+        await _context.SaveChangesAsync();
+        return true;
+    }
+
     public async Task<Transaction?> GetTransactionById(int id)
     {
         var transaction = await _context.Transactions.FindAsync(id);

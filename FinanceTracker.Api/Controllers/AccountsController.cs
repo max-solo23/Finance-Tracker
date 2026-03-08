@@ -340,6 +340,16 @@ public class AccountsController : ControllerBase
             });
         }
 
+        if (fromAccount.GetBalance() < request.Amount)
+        {
+            _logger.LogWarning("Insufficient funds in account {Id}", fromAccount.Id);
+            return StatusCode(422, new ErrorResponse
+            {
+                Message = $"Insufficient funds in account {fromAccount.Id}",
+                StatusCode = 422
+            });
+        }
+
         var transfer = await _transferRepository.Create(
             request.FromAccountId,
             request.ToAccountId,

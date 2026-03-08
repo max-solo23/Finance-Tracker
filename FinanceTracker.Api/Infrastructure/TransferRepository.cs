@@ -25,6 +25,12 @@ public class TransferRepository : ITransferRepository
             IdempotencyKey = idempotencyKey 
         };
 
+        var fromAccount = await _context.Accounts.FindAsync(fromAccountId);
+        fromAccount!.AddTransaction(-transfer.Amount, transfer.Description, transfer.ProcessAt);
+
+        var toAccount = await _context.Accounts.FindAsync(toAccountId);
+        toAccount!.AddTransaction(transfer.Amount, transfer.Description, transfer.ProcessAt);
+
         try
         {
             await _context.Transfers.AddAsync(transfer);

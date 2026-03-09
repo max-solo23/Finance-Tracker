@@ -6,6 +6,7 @@ public class FinanceTrackerContext : DbContext
     public DbSet<Account> Accounts { get; set; } = null!;
     public DbSet<Transaction> Transactions { get; set; } = null!;
     public DbSet<Transfer> Transfers { get; set; } = null!;
+    public DbSet<User> Users { get; set; } = null!;
 
     public FinanceTrackerContext()
     {
@@ -47,5 +48,9 @@ public class FinanceTrackerContext : DbContext
             .WithMany(a => a.Transactions)
             .HasForeignKey(t => t.AccountId)
             .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<User>()
+            .HasIndex(u => u.Email)
+            .IsUnique();
     }
 }

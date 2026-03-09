@@ -2,7 +2,9 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 using FinanceTracker.Api.Application.DTOs;
+using FinanceTracker.Models;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 
 [ApiController]
@@ -11,11 +13,14 @@ public class AuthController : ControllerBase
 {
     private readonly IConfiguration _configuration;
     private readonly ILogger<AuthController> _logger;
+    private readonly FinanceTrackerContext _context;
 
-    public AuthController(IConfiguration configuration, ILogger<AuthController> logger)
+    public AuthController(
+        IConfiguration configuration, ILogger<AuthController> logger, FinanceTrackerContext context)
     {
         _configuration = configuration;
         _logger = logger;
+        _context = context;
     }
 
     [HttpPost("login")]
@@ -65,5 +70,54 @@ public class AuthController : ControllerBase
         _logger.LogInformation("User {Email} successfully logged in", request.Email);
 
         return Ok(new { token = new JwtSecurityTokenHandler().WriteToken(token)});
+    }
+
+    [HttpPost("register")]
+    public async Task<IActionResult> Register([FromBody] RegisterRequest request)
+    {
+        if (!ModelState.IsValid)
+        {
+            _logger.LogWarning("Invalid User registration request.");
+            return StatusCode(422, 
+                new ErrorResponse
+            {
+                Message = "Invalid User registration request.",
+                StatusCode = 422,
+                Errors = ModelState
+                    .Where(kvp => kvp.Value?.Errors.Count > 0)
+                    .ToDictionary(
+                        kvp => kvp.Key,
+                        kvp => kvp.Value?.Errors.Select(e => e.ErrorMessage).ToList() ?? new List<string>()
+                    )
+            });
+        }
+
+        var emailExists = await _context.Users.AnyAsync(user => user.Email == request.Email);
+
+        if (emailExists)
+        {
+            _logger.LogWarning("Email already used by another user.");
+            return StatusCode(409,
+                new ErrorResponse
+                {
+                    Message = "Email already used by another user.",
+                    StatusCode = 409
+                });
+        }
+
+        var hashedPassword = BCrypt.Net.BCrypt.HashPassword(request.Password);
+
+        var user = new User{
+            Email = request.Email, 
+            PasswordHash = hashedPassword,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        await _context.Users.AddAsync(user);
+        await _context.SaveChangesAsync();
+
+        _logger.LogInformation("User {Email} successfully created.", request.Email);
+
+        return Created();
     }
 }

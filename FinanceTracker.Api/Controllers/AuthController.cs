@@ -1,6 +1,7 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
+using System.Threading.Tasks;
 using FinanceTracker.Api.Application.DTOs;
 using FinanceTracker.Models;
 using Microsoft.AspNetCore.Mvc;
@@ -24,33 +25,25 @@ public class AuthController : ControllerBase
     }
 
     [HttpPost("login")]
-    public IActionResult Login([FromBody] LoginRequest request)
+    public async Task<IActionResult> Login([FromBody] LoginRequest request)
     {
-        if ( request.Email != "admin@test.com")
-        {
-            _logger.LogWarning("Login failed for {Email} - user not found", request.Email);
-            return Unauthorized(new ErrorResponse
-            {
-                Message = "Invalid credentials",
-                StatusCode = 401
-            });            
-        }
+        var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == request.Email);
 
-        if ( request.Password != "password123")
+        if (user == null || !BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash))
         {
-            _logger.LogWarning("Login failed for {Email} - wrong password", request.Email);
+            _logger.LogWarning("Login failed for {Email} - invalid credentials.", request.Email);
             return Unauthorized(new ErrorResponse
             {
                 Message = "Invalid credentials",
                 StatusCode = 401
-            });    
+            });
         }
 
         var jwtSettings = _configuration.GetSection("JwtSettings");
 
         var claims = new[]
         {
-            new Claim(ClaimTypes.NameIdentifier, "1"),
+            new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
             new Claim(ClaimTypes.Email, request.Email)
         };
 

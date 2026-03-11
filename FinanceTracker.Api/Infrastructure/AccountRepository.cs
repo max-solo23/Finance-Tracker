@@ -12,9 +12,11 @@ public class AccountRepository : IAccountRepository
         _context = financeTrackerContext;
     }
 
-    public async Task<Account> Create(string name)
+    public async Task<Account> Create(string name, int userId)
     {
         var account = new Account(name);
+
+        account.UserId = userId;
 
         _context.Accounts.Add(account);
 
@@ -23,9 +25,10 @@ public class AccountRepository : IAccountRepository
         return account;
     }
 
-    public async Task<bool> Delete(int id)
+    public async Task<bool> Delete(int id, int userId)
     {
-        var account = await _context.Accounts.FindAsync(id);
+        var account = await _context.Accounts
+            .FirstOrDefaultAsync(account => account.Id == id && account.UserId == userId);
 
         if (account == null) return false;
 
@@ -36,35 +39,38 @@ public class AccountRepository : IAccountRepository
         return true;
     }
 
-    public async Task<List<int>> ExistsByIds(List<int> ids)
+    public async Task<List<int>> ExistsByIds(List<int> ids, int userId)
     {
         var existingIds = await _context.Accounts
-            .Where(account => ids.Contains(account.Id))
+            .Where(account => ids.Contains(account.Id) && account.UserId == userId)
             .Select(account => account.Id)
             .ToListAsync();
 
         return existingIds;
     }
 
-    public async Task<List<Account>> GetAll()
+    public async Task<List<Account>> GetAll(int userId)
     {
-        var accounts = await _context.Accounts.ToListAsync();
+        var accounts = await _context.Accounts
+            .Where(account => account.UserId == userId)
+            .ToListAsync();
 
         return accounts;
     }
 
-    public async Task<Account?> GetById(int id)
+    public async Task<Account?> GetById(int id, int userId)
     {
         var account = await _context.Accounts
             .Include(account => account.Transactions)
-            .FirstOrDefaultAsync(account => account.Id == id);
+            .FirstOrDefaultAsync(account => account.Id == id && account.UserId == userId);
 
         return account;
     }
 
-    public async Task<Account?> Update(int id, string name)
+    public async Task<Account?> Update(int id, string name, int userId)
     {
-        var account = await _context.Accounts.FindAsync(id);
+        var account = await _context.Accounts
+            .FirstOrDefaultAsync(account => account.Id == id && account.UserId == userId);
 
         if (account == null) return null;
 

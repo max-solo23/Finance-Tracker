@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using FinanceTracker.Models;
 
 public class Account : IAccount
 {
@@ -8,6 +9,8 @@ public class Account : IAccount
     public List<Transaction> Transactions { get; private set; } = new List<Transaction>();
     public event EventHandler? LowBalanceAlert;
     public int Id { get; set; }
+    public int UserId { get; set; }
+    public User? User { get; set; }
     
     public Account(string name)
     {

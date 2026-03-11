@@ -12,44 +12,44 @@ public class AccountService : IAccountService
         _repository = accountRepository;
     }
     
-    public Task<Account> Create(string name)
+    public Task<Account> Create(string name, int userId)
     {
-        var account = _repository.Create(name);
+        var account = _repository.Create(name, userId);
 
         return account;
     }
 
-    public Task<bool> Delete(int id)
+    public Task<bool> Delete(int id, int userId)
     {
-        var result = _repository.Delete(id);
+        var result = _repository.Delete(id, userId);
 
         return result;
     }
 
-    public async Task<List<int>> ExistsByIds(List<int> ids)
+    public async Task<List<int>> ExistsByIds(List<int> ids, int userId)
     {
-        var existingIds = await _repository.ExistsByIds(ids);
+        var existingIds = await _repository.ExistsByIds(ids, userId);
 
         return existingIds;
     }
 
-    public async Task<IEnumerable<Account>> GetAll()
+    public async Task<IEnumerable<Account>> GetAll(int userId)
     {
-        var accounts = await _repository.GetAll();
+        var accounts = await _repository.GetAll(userId);
 
         return accounts;
     }
 
-    public Task<Account?> GetById(int id)
+    public Task<Account?> GetById(int id, int userId)
     {
-        var account = _repository.GetById(id);
+        var account = _repository.GetById(id, userId);
 
         return account;
     }
 
-    public Task<Account?> Update(int id, string name)
+    public Task<Account?> Update(int id, string name, int userId)
     {
-        var account = _repository.Update(id, name);
+        var account = _repository.Update(id, name, userId);
 
         return account;
     }

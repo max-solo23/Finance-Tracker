@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using FinanceTracker.Api.Application;
 using FinanceTracker.Api.Application.DTOs;
 using FinanceTracker.Api.Domain;
@@ -32,9 +33,12 @@ public class AccountsController : ControllerBase
     [HttpGet("{id}")]
     public async Task<IActionResult> GetAccount(int id)
     {
+        var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+
         if (id <= 0)
         {
             _logger.LogWarning("Invalid account id={Id} - must be positive", id);
+
             return StatusCode(400,
                 new ErrorResponse
                 {
@@ -44,11 +48,12 @@ public class AccountsController : ControllerBase
             );
         }
         
-        var account = await _accountService.GetById(id);
+        var account = await _accountService.GetById(id, userId);
 
         if (account == null)
         {
             _logger.LogWarning("Account id={Id} not found", id);
+
             return StatusCode(404,
                 new ErrorResponse
                 {
@@ -59,23 +64,31 @@ public class AccountsController : ControllerBase
         }
         
         _logger.LogInformation("Account id={Id} found", id);
+
         return Ok(account);
     }
 
     [HttpGet]
     public async Task<IActionResult> GetAccounts()
     {
-        var accounts = await _accountService.GetAll();
+        var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+
+        var accounts = await _accountService.GetAll(userId);
+
         _logger.LogInformation("Accounts count: {Count}", accounts.Count());
+
         return Ok(accounts);
     }
 
     [HttpPost]
     public async Task<IActionResult> CreateAccount([FromBody] CreateAccountRequest request)
     {
+        var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+
         if (!ModelState.IsValid)
         {
             _logger.LogWarning("Invalid account creation request: {Errors}", ModelState);
+            
             return StatusCode(422,
                 new ErrorResponse
                 {
@@ -91,7 +104,7 @@ public class AccountsController : ControllerBase
             );
         }
 
-        var account = await _accountService.Create(request.Name!);
+        var account = await _accountService.Create(request.Name!, userId);
 
         _logger.LogInformation("Account created Id={Id}, Name={Name}", account.Id, account.Name);
 
@@ -105,9 +118,12 @@ public class AccountsController : ControllerBase
     [HttpPost("{id}/transactions")]
     public async Task<IActionResult> CreateTransaction(int id, [FromBody] CreateTransactionRequest request)
     {
+        var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+
         if (request.Amount == 0)
         {
             _logger.LogWarning("Transaction can't be 0.");
+
             return StatusCode(422, 
                 new ErrorResponse
                 {
@@ -117,11 +133,12 @@ public class AccountsController : ControllerBase
             );
         }    
 
-        var account = await _accountService.GetById(id);
+        var account = await _accountService.GetById(id, userId);
 
         if (account == null)
         {
             _logger.LogWarning("Account id={Id} not found", id);
+
             return StatusCode(404, 
                 new ErrorResponse
                 {
@@ -145,9 +162,12 @@ public class AccountsController : ControllerBase
     [HttpGet("{id}/transactions")]
     public async Task<IActionResult> GetAllTransactions(int id)
     {
+        var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+
         if (id <= 0)
         {
             _logger.LogWarning("Invalid account id={Id}", id);
+
             return StatusCode(400, new ErrorResponse
             {
                 Message = "ID must be positive number",
@@ -155,11 +175,12 @@ public class AccountsController : ControllerBase
             });
         }
 
-        var account = await _accountService.GetById(id);
+        var account = await _accountService.GetById(id, userId);
 
         if (account == null)
         {
             _logger.LogWarning("Account id={Id} not found", id);
+
             return StatusCode(404, new ErrorResponse
             {
                 Message = "Account not found",
@@ -168,15 +189,19 @@ public class AccountsController : ControllerBase
         }
 
         _logger.LogInformation("Successfully found transactions for account id={Id}", id);
+
         return Ok(account.Transactions.ToList());
     }
 
     [HttpPut("{id}")]
     public async Task<IActionResult> UpdateAccount(int id, [FromBody] UpdateAccountRequest request)
     {
+        var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+
         if (id <= 0)
         {
             _logger.LogWarning("Invalid account id={Id}", id);
+
             return StatusCode(400, new ErrorResponse
             {
                 Message = "ID must be a positive number.",
@@ -187,6 +212,7 @@ public class AccountsController : ControllerBase
         if (!ModelState.IsValid)
         {
             _logger.LogWarning("Invalid update request for account id={Id}", id);
+
             return StatusCode(422, new ErrorResponse
             {
                 Message = "Invalid account update request.",
@@ -200,11 +226,12 @@ public class AccountsController : ControllerBase
             });
         }
 
-        var account = await _accountService.Update(id, request.Name!);
+        var account = await _accountService.Update(id, request.Name!, userId);
 
         if (account == null)
         {
             _logger.LogWarning("Account id={Id} not found for update", id);
+
             return StatusCode(404, new ErrorResponse
             {
                 Message = "Account not found.",
@@ -220,9 +247,12 @@ public class AccountsController : ControllerBase
     [HttpDelete("{id}")]
     public async Task<IActionResult> DeleteAccount(int id)
     {
+        var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+
         if (id <= 0)
         {
             _logger.LogWarning("Invalid id={Id} for delete request", id);
+
             return StatusCode(400, new ErrorResponse
             {
                 Message = "ID must be a positive number.",
@@ -230,11 +260,12 @@ public class AccountsController : ControllerBase
             });
         }
 
-        var accountDeleted = await _accountService.Delete(id);
+        var accountDeleted = await _accountService.Delete(id, userId);
 
         if (!accountDeleted)
         {
             _logger.LogWarning("Account id={Id} not found for deletion.", id);
+
             return StatusCode(404, new ErrorResponse
             {
                 Message = "Account not found.",
@@ -266,6 +297,8 @@ public class AccountsController : ControllerBase
     [HttpPost("bulk-validate")]
     public async Task<IActionResult> BulkValidateAccount([FromBody] BulkValidateRequest request)
     {
+        var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+
         if (!ModelState.IsValid)
         {
             _logger.LogWarning("Invalid bulk validate request");
@@ -287,7 +320,7 @@ public class AccountsController : ControllerBase
             });
         }
 
-        var existingIds = await _accountService.ExistsByIds(request.AccountIds.ToList());
+        var existingIds = await _accountService.ExistsByIds(request.AccountIds.ToList(), userId);
 
         var missingIds = request.AccountIds.Except(existingIds).ToList();
 
@@ -301,20 +334,25 @@ public class AccountsController : ControllerBase
     [HttpPost("transfer")]
     public async Task<IActionResult> Transfer([FromBody] TransferRequest request)
     {
+        var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+
         var existingTransfer = await _transferRepository.GetByIdempotencyKey(request.IdempotencyKey);
 
         if (existingTransfer != null)
         {
-            _logger.LogWarning("Transfer already processed idempotency key={IdempotencyKey}", request.IdempotencyKey);
+            _logger.LogWarning(
+                "Transfer already processed idempotency key={IdempotencyKey}", request.IdempotencyKey);
+
             return Ok(new { message = "Transfer already processed", transferId = existingTransfer.Id });
         }
 
-        var fromAccount = await _accountService.GetById(request.FromAccountId);
-        var toAccount = await _accountService.GetById(request.ToAccountId);
+        var fromAccount = await _accountService.GetById(request.FromAccountId, userId);
+        var toAccount = await _accountService.GetById(request.ToAccountId, userId);
 
         if (fromAccount == null)
         {
             _logger.LogWarning("From account id={Id} not found", request.FromAccountId);
+
             return NotFound(new ErrorResponse
             {
                 Message = "From account not found",
@@ -329,6 +367,7 @@ public class AccountsController : ControllerBase
         if (toAccount == null)
         {
             _logger.LogWarning("To account id={Id} not found", request.ToAccountId);
+
             return NotFound(new ErrorResponse
             {
                 Message = "To account not found",
@@ -343,6 +382,7 @@ public class AccountsController : ControllerBase
         if (fromAccount.GetBalance() < request.Amount)
         {
             _logger.LogWarning("Insufficient funds in account {Id}", fromAccount.Id);
+
             return StatusCode(422, new ErrorResponse
             {
                 Message = $"Insufficient funds in account {fromAccount.Id}",
@@ -358,6 +398,7 @@ public class AccountsController : ControllerBase
             request.IdempotencyKey
         );
         _logger.LogInformation("Transfer successful id={Id}", transfer.Id);
+        
         return Ok(new { message = "Transfer successful", transferId = transfer.Id});
     }
 }

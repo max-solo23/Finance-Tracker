@@ -281,7 +281,9 @@ public class AccountsController : ControllerBase
     [HttpDelete("{accountId}/transactions/{transactionId}")]
     public async Task<IActionResult> DeleteTransaction(int accountId, int transactionId)
     {
-        var transactionDeleted = await _transactionRepository.Delete(accountId, transactionId);
+        var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+
+        var transactionDeleted = await _transactionRepository.Delete(accountId, transactionId, userId);
 
         if (!transactionDeleted)
         {
@@ -398,7 +400,7 @@ public class AccountsController : ControllerBase
             request.IdempotencyKey
         );
         _logger.LogInformation("Transfer successful id={Id}", transfer.Id);
-        
+
         return Ok(new { message = "Transfer successful", transferId = transfer.Id});
     }
 }

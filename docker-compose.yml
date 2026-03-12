@@ -7,3 +7,4 @@ services:
       - "./data:/app/data"
     environment:
       - ConnectionStrings__DefaultConnection=Data Source=/app/data/finance.db
+      - JwtSettings__SecretKey=this-is-a-super-secret-key-for-dev-only-32chars

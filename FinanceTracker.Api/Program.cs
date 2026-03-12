@@ -61,6 +61,12 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<FinanceTrackerContext>();
+    db.Database.Migrate();
+}
+
 app.UseMiddleware<GlobalExceptionHandler>();
 app.UseCors("AllowFrontend");
 app.UseAuthentication();

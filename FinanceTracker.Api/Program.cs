@@ -9,6 +9,9 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using System.ComponentModel.DataAnnotations;
+using Microsoft.AspNetCore.RateLimiting;
+using System.Threading.RateLimiting;
+using FinanceTracker.Api.Application.DTOs;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -59,6 +62,39 @@ builder.Services.AddCors(options =>
     });
 });
 
+builder.Services.AddRateLimiter(options =>
+{
+    options.AddPolicy("login", httpContext =>
+        RateLimitPartition.GetSlidingWindowLimiter(
+            partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            factory: _ => new SlidingWindowRateLimiterOptions
+            {
+                PermitLimit = 5,
+                Window = TimeSpan.FromMinutes(1),
+                SegmentsPerWindow = 6,
+                QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+                QueueLimit = 0
+            }
+        ));
+
+    options.OnRejected = async (context, token) =>
+    {
+        var logger = context.HttpContext.RequestServices
+            .GetRequiredService<ILoggerFactory>()
+            .CreateLogger("RateLimiter");
+            
+        logger.LogWarning(
+            "Rate limit exceeded for IP: {IP}", context.HttpContext.Connection.RemoteIpAddress);
+        context.HttpContext.Response.StatusCode = 429;
+        await context.HttpContext.Response.WriteAsJsonAsync(new ErrorResponse
+        {
+            Message = "Too many requests, try again later.",
+            StatusCode = 429
+        }, 
+        token);
+    };
+});
+
 var app = builder.Build();
 
 using (var scope = app.Services.CreateScope())
@@ -69,6 +105,7 @@ using (var scope = app.Services.CreateScope())
 
 app.UseMiddleware<GlobalExceptionHandler>();
 app.UseCors("AllowFrontend");
+app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
 

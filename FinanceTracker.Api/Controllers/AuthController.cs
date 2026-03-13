@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using FinanceTracker.Api.Application.DTOs;
 using FinanceTracker.Models;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 
@@ -24,6 +25,7 @@ public class AuthController : ControllerBase
         _context = context;
     }
 
+    [EnableRateLimiting("login")]
     [HttpPost("login")]
     public async Task<IActionResult> Login([FromBody] LoginRequest request)
     {

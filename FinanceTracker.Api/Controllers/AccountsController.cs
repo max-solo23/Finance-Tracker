@@ -336,6 +336,16 @@ public class AccountsController : ControllerBase
     [HttpPost("transfer")]
     public async Task<IActionResult> Transfer([FromBody] TransferRequest request)
     {
+        if (request.FromAccountId == request.ToAccountId)
+        {
+            _logger.LogWarning("Self-transfer attempted: AccountId={AccountId}.", request.FromAccountId);
+            return StatusCode(422, new ErrorResponse
+            {
+                Message = "Source and destination accounts must be different.",
+                StatusCode = 422
+            });
+        }
+
         var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
 
         var existingTransfer = await _transferRepository.GetByIdempotencyKey(request.IdempotencyKey);

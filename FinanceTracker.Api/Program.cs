@@ -8,10 +8,10 @@ using FinanceTracker.Api.Application.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
-using System.ComponentModel.DataAnnotations;
-using Microsoft.AspNetCore.RateLimiting;
 using System.Threading.RateLimiting;
 using FinanceTracker.Api.Application.DTOs;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
+using System.Text.Json;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -51,6 +51,9 @@ builder.Services.AddScoped<IAccountRepository, AccountRepository>();
 builder.Services.AddScoped<ITransactionRepository, TransactionRepository>();
 builder.Services.AddScoped<IAccountService, AccountService>();
 builder.Services.AddScoped<ITransferRepository, TransferRepository>();
+
+builder.Services.AddHealthChecks()
+    .AddDbContextCheck<FinanceTrackerContext>();
 
 builder.Services.AddCors(options =>
 {
@@ -110,5 +113,24 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+app.MapHealthChecks("/health", new HealthCheckOptions
+{
+    ResponseWriter = async (context, report) =>
+    {
+        context.Response.ContentType = "application/json";        
+        var result = new
+        {
+            status = report.Status.ToString(),
+            checks = report.Entries.Select(e => new
+            {
+                name = e.Key,
+                status = e.Value.Status.ToString(),
+                duration = e.Value.Duration
+            }),
+            totalDuration = report.TotalDuration
+        };
+        await JsonSerializer.SerializeAsync(context.Response.Body, result);
+    }
+});
 
 app.Run();

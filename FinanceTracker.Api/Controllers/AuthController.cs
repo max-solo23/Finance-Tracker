@@ -67,6 +67,7 @@ public class AuthController : ControllerBase
         return Ok(new { token = new JwtSecurityTokenHandler().WriteToken(token)});
     }
 
+    [EnableRateLimiting("register")]
     [HttpPost("register")]
     public async Task<IActionResult> Register([FromBody] RegisterRequest request)
     {

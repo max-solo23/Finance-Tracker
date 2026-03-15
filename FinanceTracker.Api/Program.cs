@@ -80,6 +80,16 @@ builder.Services.AddRateLimiter(options =>
             }
         ));
 
+    options.AddPolicy("register", httpContext => 
+        RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            factory: _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 3,
+                Window = TimeSpan.FromMinutes(30),
+            }
+        ));
+
     options.OnRejected = async (context, token) =>
     {
         var logger = context.HttpContext.RequestServices

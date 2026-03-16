@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
-using Microsoft.Extensions.Configuration;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+using FinanceTracker.Api.Domain;
 
 namespace FinanceTracker.Tests.Factories;
 
@@ -10,24 +12,33 @@ public class FinanceTrackerFactory : WebApplicationFactory<Program>
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
-        builder.ConfigureAppConfiguration((context, config) =>
+        builder.UseSetting("JwtSettings:SecretKey", "test-secret-key-for-integration-test-only!!");
+        builder.UseSetting("JwtSettings:Issuer", "FinanceTracker");
+        builder.UseSetting("JwtSettings:Audience", "FinanceTrackerUsers");
+        builder.UseSetting("Cors:AllowedOrigins", "http://localhost:3000");
+
+        builder.ConfigureServices(services =>
         {
-            config.AddInMemoryCollection(new Dictionary<string, string?>
-            {
-                ["ConnectionStrings:DefaultConnection"] = $"DataSource={_dbPath}",
-                ["JwtSettings:SecretKey"] = "test-secret-key-for-integration-tests-only!",
-                ["JwtSettings:Issuer"] = "FinanceTracker",
-                ["JwtSettings:Audience"] = "FinanceTrackerUsers",
-                ["Cors:AllowedOrigins"] = "http://localhost:3000"
-            });
+            var descriptor = services.SingleOrDefault(
+                d => d.ServiceType == typeof(DbContextOptions<FinanceTrackerContext>));
+            if (descriptor != null) services.Remove(descriptor);
+
+            services.AddDbContext<FinanceTrackerContext>(options => 
+                options.UseSqlite($"DataSource={_dbPath}"));
         });
     }
 
     protected override void Dispose(bool disposing)
     {
         base.Dispose(disposing);
-
-        if (File.Exists(_dbPath))
-            File.Delete(_dbPath);
+        try
+        {
+            if (File.Exists(_dbPath))
+                File.Delete(_dbPath);
+        }
+        catch (IOException)
+        {
+            
+        }
     }
 }

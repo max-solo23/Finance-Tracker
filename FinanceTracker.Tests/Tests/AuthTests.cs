@@ -25,7 +25,7 @@ public class AuthTests : IClassFixture<FinanceTrackerFactory>
         );
 
         var registerResponse = await _client.PostAsync("/api/auth/register", content);
-        Assert.Equal(HttpStatusCode.OK, registerResponse.StatusCode);
+        Assert.Equal(HttpStatusCode.Created, registerResponse.StatusCode);
 
         var response = await _client.PostAsync("/api/auth/login", content);
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);

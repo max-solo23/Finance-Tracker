@@ -13,7 +13,8 @@ public class TransferRepository : ITransferRepository
         _context = financeTrackerContext;
     }
 
-    public async Task<Transfer> Create(int fromAccountId, int toAccountId, decimal amount, string description, string idempotencyKey)
+    public async Task<Transfer> Create(
+        int fromAccountId, int toAccountId, decimal amount, string description, string idempotencyKey)
     {
         var transfer = new Transfer
         {

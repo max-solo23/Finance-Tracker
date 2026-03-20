@@ -142,4 +142,55 @@ public class IdempotencyTests : IClassFixture<FinanceTrackerFactory>
 
         Assert.Equal(transferId1, transferId2);
     }
+
+    [Fact]
+    public async Task Transfer_ReturnsDifferentTransferId_WhenDifferentKeys()
+    {
+        await AuthenticateAsync();
+
+        var fromId = await CreateAccountAsync(500);
+        var toId = await CreateAccountAsync(500);
+
+        var request1 = new
+        {
+            FromAccountId = fromId,
+            ToAccountId = toId,
+            Amount = 50,
+            Description = "Test Transfer 1",
+            IdempotencyKey = Guid.NewGuid().ToString()
+        };
+
+        var content1 = new StringContent(
+            JsonSerializer.Serialize(request1),
+            Encoding.UTF8,
+            "application/json"
+        );
+
+        var response1 = await _client.PostAsync("/api/accounts/transfer", content1);
+        var body1 = await response1.Content.ReadAsStringAsync();
+        var json1 = JsonDocument.Parse(body1);
+        var transferId1 = json1.RootElement.GetProperty("transferId").GetInt32();
+
+        var request2 = new
+        {
+            FromAccountId = fromId,
+            ToAccountId = toId,
+            Amount = 60,
+            Description = "Test Transfer 2",
+            IdempotencyKey = Guid.NewGuid().ToString()
+        };
+
+        var content2 = new StringContent(
+            JsonSerializer.Serialize(request2),
+            Encoding.UTF8,
+            "application/json"
+        );
+
+        var response2 = await _client.PostAsync("/api/accounts/transfer", content2);
+        var body2 = await response2.Content.ReadAsStringAsync();
+        var json2 = JsonDocument.Parse(body2);
+        var transferId2 = json2.RootElement.GetProperty("transferId").GetInt32();
+
+        Assert.NotEqual(transferId1, transferId2);
+    }
 }

@@ -110,6 +110,13 @@ builder.Services.AddRateLimiter(options =>
 
 var app = builder.Build();
 
+if (string.IsNullOrEmpty(secretKey) || secretKey.Length < 32)
+{
+    throw new InvalidOperationException(
+        "\nJWT SecretKey is missing or too short. Must be at least 32 characters. " +
+        "\nCheck JwtSettings:SecretKey in appsettings.json or user secrets.");
+}
+
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<FinanceTrackerContext>();

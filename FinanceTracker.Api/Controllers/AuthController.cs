@@ -1,12 +1,10 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
-using System.Threading.Tasks;
 using FinanceTracker.Api.Application.DTOs;
-using FinanceTracker.Models;
+using FinanceTracker.Api.Domain;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 
 [ApiController]
@@ -15,14 +13,14 @@ public class AuthController : ControllerBase
 {
     private readonly IConfiguration _configuration;
     private readonly ILogger<AuthController> _logger;
-    private readonly FinanceTrackerContext _context;
+    private readonly IUserRepository _userRepository;
 
     public AuthController(
-        IConfiguration configuration, ILogger<AuthController> logger, FinanceTrackerContext context)
+        IConfiguration configuration, ILogger<AuthController> logger, IUserRepository userRepository)
     {
         _configuration = configuration;
         _logger = logger;
-        _context = context;
+        _userRepository = userRepository;
     }
 
     [EnableRateLimiting("login")]
@@ -45,7 +43,7 @@ public class AuthController : ControllerBase
                        )
                 });
         }
-        var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == request.Email);
+        var user = await _userRepository.GetByEmail(request.Email);
 
         if (user == null || !BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash))
         {
@@ -104,7 +102,7 @@ public class AuthController : ControllerBase
             });
         }
 
-        var emailExists = await _context.Users.AnyAsync(user => user.Email == request.Email);
+        var emailExists = await _userRepository.ExistsByEmail(request.Email);
 
         if (emailExists)
         {
@@ -117,16 +115,9 @@ public class AuthController : ControllerBase
                 });
         }
 
-        var hashedPassword = BCrypt.Net.BCrypt.HashPassword(request.Password);
+        var passwordHash = BCrypt.Net.BCrypt.HashPassword(request.Password);
 
-        var user = new User{
-            Email = request.Email, 
-            PasswordHash = hashedPassword,
-            CreatedAt = DateTime.UtcNow
-        };
-
-        await _context.Users.AddAsync(user);
-        await _context.SaveChangesAsync();
+        await _userRepository.Create(request.Email, passwordHash);
 
         _logger.LogInformation("User {Email} successfully created.", request.Email);
 

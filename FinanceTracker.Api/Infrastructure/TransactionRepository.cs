@@ -12,7 +12,8 @@ public class TransactionRepository : ITransactionRepository
         _context = financeTrackerContext;
     }
     
-    public async Task<Transaction> Create(int accountId, decimal amount, string description)
+    public async Task<Transaction> Create(
+        int accountId, decimal amount, string description, string? category)
     {
         var account = await _context.Accounts.FindAsync(accountId);
 
@@ -22,6 +23,8 @@ public class TransactionRepository : ITransactionRepository
         }
 
         var transaction = new Transaction(amount, description, DateTime.UtcNow);
+
+        transaction.Category = category;
 
         account.AddTransaction(transaction);
 

@@ -41,3 +41,4 @@ memory-tool.db
 *.md
 !README.md
 *.db
+.omc

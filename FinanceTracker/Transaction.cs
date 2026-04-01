@@ -5,6 +5,7 @@ public class Transaction
     public DateTime Date { get; set; }
     public int Id { get; set; }
     public int AccountId { get; set; }
+    public string? Category { get; set; }
 
     public Transaction(decimal amount, string description, DateTime date)
     {

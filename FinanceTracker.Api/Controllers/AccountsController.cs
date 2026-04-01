@@ -148,7 +148,7 @@ public class AccountsController : ControllerBase
             );
         }
 
-        var transaction = await _transactionRepository.Create(id, request.Amount, request.Description);
+        var transaction = await _transactionRepository.Create(id, request.Amount, request.Description, request.Category);
 
         _logger.LogInformation("Transaction created for account {Id}", id);
 

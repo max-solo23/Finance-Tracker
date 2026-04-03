@@ -42,3 +42,4 @@ memory-tool.db
 !README.md
 *.db
 .omc
+.playwright-mcp

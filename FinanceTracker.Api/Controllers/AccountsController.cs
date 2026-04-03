@@ -33,7 +33,11 @@ public class AccountsController : ControllerBase
     [HttpGet("{id}")]
     public async Task<IActionResult> GetAccount(int id)
     {
-        var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        if (GetUserIdFromClaims() is not int userId) return Unauthorized(new ErrorResponse
+        {
+            Message = "Invalid token claims",
+            StatusCode = 401
+        });
 
         if (id <= 0)
         {
@@ -71,7 +75,11 @@ public class AccountsController : ControllerBase
     [HttpGet]
     public async Task<IActionResult> GetAccounts()
     {
-        var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        if (GetUserIdFromClaims() is not int userId) return Unauthorized(new ErrorResponse
+        {
+            Message = "Invalid token claims",
+            StatusCode = 401
+        });
 
         var accounts = await _accountService.GetAll(userId);
 
@@ -83,7 +91,11 @@ public class AccountsController : ControllerBase
     [HttpPost]
     public async Task<IActionResult> CreateAccount([FromBody] CreateAccountRequest request)
     {
-        var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        if (GetUserIdFromClaims() is not int userId) return Unauthorized(new ErrorResponse
+        {
+            Message = "Invalid token claims",
+            StatusCode = 401
+        });
 
         if (!ModelState.IsValid)
         {
@@ -118,7 +130,11 @@ public class AccountsController : ControllerBase
     [HttpPost("{id}/transactions")]
     public async Task<IActionResult> CreateTransaction(int id, [FromBody] CreateTransactionRequest request)
     {
-        var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        if (GetUserIdFromClaims() is not int userId) return Unauthorized(new ErrorResponse
+        {
+            Message = "Invalid token claims",
+            StatusCode = 401
+        });
 
         if (request.Amount == 0)
         {
@@ -162,7 +178,11 @@ public class AccountsController : ControllerBase
     [HttpGet("{id}/transactions")]
     public async Task<IActionResult> GetAllTransactions(int id)
     {
-        var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        if (GetUserIdFromClaims() is not int userId) return Unauthorized(new ErrorResponse
+        {
+            Message = "Invalid token claims",
+            StatusCode = 401
+        });
 
         if (id <= 0)
         {
@@ -196,7 +216,11 @@ public class AccountsController : ControllerBase
     [HttpPut("{id}")]
     public async Task<IActionResult> UpdateAccount(int id, [FromBody] UpdateAccountRequest request)
     {
-        var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        if (GetUserIdFromClaims() is not int userId) return Unauthorized(new ErrorResponse
+        {
+            Message = "Invalid token claims",
+            StatusCode = 401
+        });
 
         if (id <= 0)
         {
@@ -247,7 +271,11 @@ public class AccountsController : ControllerBase
     [HttpDelete("{id}")]
     public async Task<IActionResult> DeleteAccount(int id)
     {
-        var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        if (GetUserIdFromClaims() is not int userId) return Unauthorized(new ErrorResponse
+        {
+            Message = "Invalid token claims",
+            StatusCode = 401
+        });
 
         if (id <= 0)
         {
@@ -281,7 +309,11 @@ public class AccountsController : ControllerBase
     [HttpDelete("{accountId}/transactions/{transactionId}")]
     public async Task<IActionResult> DeleteTransaction(int accountId, int transactionId)
     {
-        var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        if (GetUserIdFromClaims() is not int userId) return Unauthorized(new ErrorResponse
+        {
+            Message = "Invalid token claims",
+            StatusCode = 401
+        });
 
         var transactionDeleted = await _transactionRepository.Delete(accountId, transactionId, userId);
 
@@ -299,7 +331,11 @@ public class AccountsController : ControllerBase
     [HttpPost("bulk-validate")]
     public async Task<IActionResult> BulkValidateAccount([FromBody] BulkValidateRequest request)
     {
-        var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        if (GetUserIdFromClaims() is not int userId) return Unauthorized(new ErrorResponse
+        {
+            Message = "Invalid token claims",
+            StatusCode = 401
+        });
 
         if (!ModelState.IsValid)
         {
@@ -346,7 +382,11 @@ public class AccountsController : ControllerBase
             });
         }
 
-        var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        if (GetUserIdFromClaims() is not int userId) return Unauthorized(new ErrorResponse
+        {
+            Message = "Invalid token claims",
+            StatusCode = 401
+        });
 
         var existingTransfer = await _transferRepository.GetByIdempotencyKey(request.IdempotencyKey);
 
@@ -412,5 +452,12 @@ public class AccountsController : ControllerBase
         _logger.LogInformation("Transfer successful id={Id}", transfer.Id);
 
         return Ok(new { message = "Transfer successful", transferId = transfer.Id});
+    }
+
+    private int? GetUserIdFromClaims()
+    {
+        var value = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (int.TryParse(value, out var id)) return id;
+        return null;
     }
 }

@@ -12,6 +12,7 @@ using System.Threading.RateLimiting;
 using FinanceTracker.Api.Application.DTOs;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using System.Text.Json;
+using Microsoft.OpenApi.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -109,6 +110,35 @@ builder.Services.AddRateLimiter(options =>
     };
 });
 
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen(options =>
+{
+    options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    {
+        Name = "Authorization",
+        Type = SecuritySchemeType.Http,
+        Scheme = "bearer",
+        BearerFormat = "JWT",
+        In = ParameterLocation.Header,
+        Description = "Enter your JWT token"
+    });
+
+    options.AddSecurityRequirement(new OpenApiSecurityRequirement
+    {
+        {
+            new OpenApiSecurityScheme
+            {
+                Reference = new OpenApiReference
+                {
+                    Type = ReferenceType.SecurityScheme,
+                    Id = "Bearer"
+                }
+            },
+            Array.Empty<string>()
+        }
+    });
+});
+
 var app = builder.Build();
 
 if (string.IsNullOrEmpty(secretKey) || secretKey.Length < 32)
@@ -157,6 +187,9 @@ app.MapHealthChecks("/health", new HealthCheckOptions
         await JsonSerializer.SerializeAsync(context.Response.Body, result);
     }
 });
+
+app.UseSwagger();
+app.UseSwaggerUI();
 
 app.Run();
 

@@ -10,6 +10,7 @@ public class Account : IAccount
     public event EventHandler? LowBalanceAlert;
     public int Id { get; set; }
     public int UserId { get; set; }
+    [JsonIgnore]
     public User? User { get; set; }
     
     public Account(string name)

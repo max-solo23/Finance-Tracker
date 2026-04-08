@@ -13,6 +13,7 @@ using FinanceTracker.Api.Application.DTOs;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using System.Text.Json;
 using Microsoft.OpenApi.Models;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -43,10 +44,20 @@ builder.Services.Configure<ApiBehaviorOptions>(options =>
     options.SuppressModelStateInvalidFilter = true;
 });
 
-var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+var pgConnection = builder.Configuration.GetConnectionString("PostgreSQL");
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ?? "Data Source=finance.db";
 
 builder.Services.AddDbContext<FinanceTrackerContext>(options => 
-    options.UseSqlite(connectionString));
+{
+    if (!string.IsNullOrEmpty(pgConnection))
+        options.UseNpgsql(pgConnection);
+    else
+    {
+        options.UseSqlite(connectionString);
+        options.ConfigureWarnings(w => 
+            w.Ignore(RelationalEventId.PendingModelChangesWarning));
+    }
+});
 
 builder.Services.AddScoped<IAccountRepository, AccountRepository>();
 builder.Services.AddScoped<ITransactionRepository, TransactionRepository>();

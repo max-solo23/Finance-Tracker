@@ -1,9 +1,23 @@
-﻿using System;
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 
 try
 {
     using var context = new FinanceTrackerContext();
+
+    context.Database.Migrate();
+
+    var consoleUser = await context.Users.FirstOrDefaultAsync();
+    if (consoleUser == null)
+    {
+        consoleUser = new FinanceTracker.Models.User
+        {
+            Email = "console@user",
+            PasswordHash = "console-no-auth",
+            CreatedAt = DateTime.UtcNow
+        };
+        context.Users.Add(consoleUser);
+        await context.SaveChangesAsync();
+    }
 
     IAccount? wallet = context.Accounts
         .Include(a => a.Transactions)
@@ -11,7 +25,7 @@ try
 
     if (wallet == null)
     {
-        Account newAccount = new Account("Cash Wallet");
+        Account newAccount = new Account("Cash Wallet") { UserId = consoleUser.Id };
         wallet = newAccount;
         context.Accounts.Add(newAccount);
         await context.SaveChangesAsync();
@@ -21,7 +35,7 @@ try
         .FirstOrDefaultAsync(a => a.Name == "Bank Account");
     if (bankAccount == null)
     {
-        bankAccount = new Account("Bank Account");
+        bankAccount = new Account("Bank Account") { UserId = consoleUser.Id };
         context.Accounts.Add(bankAccount);
         await context.SaveChangesAsync();
         Logger.Info("Created Bank Account for testing");

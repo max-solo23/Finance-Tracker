@@ -1,4 +1,13 @@
 services:
+  db:
+    image: postgres:17
+    environment:
+      POSTGRES_DB: financetracker
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+
   api:
     build: .
     ports:
@@ -6,5 +15,7 @@ services:
     volumes:
       - "./data:/app/data"
     environment:
-      - ConnectionStrings__DefaultConnection=Data Source=/app/data/finance.db
+      - ConnectionStrings__PostgreSQL=Host=db;Database=financetracker;Username=postgres;Password=postgres
       - JwtSettings__SecretKey=this-is-a-super-secret-key-for-dev-only-32chars
+    depends_on:
+      - db

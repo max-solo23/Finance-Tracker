@@ -35,6 +35,8 @@ A personal finance tracking REST API for managing accounts and transactions.
 └─────────────────────────────────────┘
 ```
 
+> Application, Domain, and Infrastructure layers share the `FinanceTracker` project. `FinanceTracker.Api` is a separate project.
+
 ## Features
 
 - Register and login with JWT authentication
@@ -48,6 +50,10 @@ A personal finance tracking REST API for managing accounts and transactions.
 ## Running Locally
 
 ```bash
+# from repo root
+dotnet run --project FinanceTracker.Api
+
+# or enter the project first
 cd FinanceTracker.Api
 dotnet run
 ```
@@ -78,7 +84,19 @@ API runs at `http://localhost:5029`. SQLite database is persisted in `./data/`. 
 
 Interactive Swagger UI available at `http://localhost:5029/swagger` when running locally.
 
-To authenticate: call `POST /api/auth/register` to create an account, then `POST /api/auth/login` to get a token. Click **Authorize** in Swagger, paste the token, and all protected endpoints will include it automatically.
+To authenticate: 
+
+1. Register a user by calling `POST /api/auth/register`  with request body:
+
+```json
+{
+  "email": "user@example.com",
+  "password": "Password123"
+}
+```
+
+2. POST /api/auth/login with the same body to receive a JWT token.
+3. In Swagger, click Authorize and paste the token. All protected endpoints will include it automatically.
 
 ## Environment Variables
 

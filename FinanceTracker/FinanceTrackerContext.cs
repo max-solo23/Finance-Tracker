@@ -21,8 +21,9 @@ public class FinanceTrackerContext : DbContext
     {
         if (!optionsBuilder.IsConfigured)
         {
-            optionsBuilder.UseSqlite("Data Source=finance.db");
-        }        
+            const string consoleDatabase = "Data Source=Console/finance.db";
+            optionsBuilder.UseSqlite(consoleDatabase);  
+        }   
     }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)

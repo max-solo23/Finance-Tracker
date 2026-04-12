@@ -73,7 +73,7 @@ public class AccountsController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<IActionResult> GetAccounts()
+    public async Task<IActionResult> GetAccounts([FromQuery] int page = 1, [FromQuery] int pageSize = 10)
     {
         if (GetUserIdFromClaims() is not int userId) return Unauthorized(new ErrorResponse
         {
@@ -81,9 +81,9 @@ public class AccountsController : ControllerBase
             StatusCode = 401
         });
 
-        var accounts = await _accountService.GetAll(userId);
+        var accounts = await _accountService.GetAll(userId, page, pageSize);
 
-        _logger.LogInformation("Accounts count: {Count}", accounts.Count());
+        _logger.LogInformation("Accounts count: {Count}", accounts.TotalCount);
 
         return Ok(accounts);
     }

@@ -1,4 +1,5 @@
 
+using FinanceTracker.Api.Application.DTOs;
 using FinanceTracker.Api.Domain;
 
 namespace FinanceTracker.Api.Application.Services;
@@ -33,11 +34,15 @@ public class AccountService : IAccountService
         return existingIds;
     }
 
-    public async Task<IEnumerable<Account>> GetAll(int userId)
+    public async Task<PagedResponse<Account>> GetAll(int userId, int page, int pageSize)
     {
-        var accounts = await _repository.GetAll(userId);
+        pageSize = Math.Clamp(pageSize, 1, 50);
 
-        return accounts;
+        var totalCount = await _repository.GetCount(userId);
+
+        var accounts = await _repository.GetPaged(userId, page, pageSize);
+
+        return new PagedResponse<Account>(accounts, totalCount, page, pageSize);
     }
 
     public Task<Account?> GetById(int id, int userId)
@@ -53,4 +58,6 @@ public class AccountService : IAccountService
 
         return account;
     }
+
+
 }

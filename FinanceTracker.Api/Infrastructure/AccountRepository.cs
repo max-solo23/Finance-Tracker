@@ -67,6 +67,22 @@ public class AccountRepository : IAccountRepository
         return account;
     }
 
+    public async Task<int> GetCount(int userId)
+    {
+        return await _context.Accounts
+            .Where(user => user.UserId == userId).CountAsync();
+    }
+
+    public async Task<List<Account>> GetPaged(int userId, int page, int pageSize)
+    {
+        return await _context.Accounts
+            .Where(user => user.UserId == userId)
+            .OrderBy(account => account.Id)
+            .Skip((page -1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync();
+    }
+
     public async Task<Account?> Update(int id, string name, int userId)
     {
         var account = await _context.Accounts

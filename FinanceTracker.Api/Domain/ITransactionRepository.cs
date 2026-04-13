@@ -6,4 +6,6 @@ public interface ITransactionRepository
     Task<Transaction> Create(int accountId, decimal amount, string description, string? category);
     Task<Transaction?> GetTransactionById(int accountId);
     Task<bool> Delete(int accountId, int transactionId, int userId);
+    Task<int> GetCount(int accountId, int userId);
+    Task<List<Transaction>> GetPaged(int accountId, int userId, int page, int pageSize);
 }

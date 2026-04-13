@@ -176,7 +176,7 @@ public class AccountsController : ControllerBase
     }
 
     [HttpGet("{id}/transactions")]
-    public async Task<IActionResult> GetAllTransactions(int id)
+    public async Task<IActionResult> GetAllTransactions(int id, [FromQuery] int page = 1, [FromQuery] int pageSize = 10)
     {
         if (GetUserIdFromClaims() is not int userId) return Unauthorized(new ErrorResponse
         {
@@ -210,7 +210,11 @@ public class AccountsController : ControllerBase
 
         _logger.LogInformation("Successfully found transactions for account id={Id}", id);
 
-        return Ok(account.Transactions.ToList());
+        pageSize = Math.Clamp(pageSize, 1, 50);
+        var transactionCount = await _transactionRepository.GetCount(id, userId);
+        var pagedTransactions = await _transactionRepository.GetPaged(id, userId, page, pageSize);
+
+        return Ok(new PagedResponse<Transaction>(pagedTransactions, transactionCount, page, pageSize));
     }
 
     [HttpPut("{id}")]

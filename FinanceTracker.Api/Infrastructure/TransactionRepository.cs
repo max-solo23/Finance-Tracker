@@ -1,4 +1,5 @@
 using FinanceTracker.Api.Domain;
+using FinanceTracker.Models;
 using Microsoft.EntityFrameworkCore;
 
 namespace FinanceTracker.Api.Infrastructure;
@@ -46,6 +47,29 @@ public class TransactionRepository : ITransactionRepository
         _context.Transactions.Remove(transactionToDelete);
         await _context.SaveChangesAsync();
         return true;
+    }
+
+    public async Task<int> GetCount(int accountId, int userId)
+    {
+        return await _context.Transactions
+            .Where(t => t.AccountId == accountId)
+            .Where(t => _context.Accounts.Any(
+                a => a.Id == accountId && a.UserId == userId
+            ))
+            .CountAsync();
+    }
+
+    public async Task<List<Transaction>> GetPaged(int accountId, int userId, int page, int pageSize)
+    {
+        return await _context.Transactions
+            .Where(t => t.AccountId == accountId)
+            .Where(t => _context.Accounts.Any(
+                a => a.Id == accountId && a.UserId == userId
+            ))
+            .OrderBy(t => t.Id)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync();
     }
 
     public async Task<Transaction?> GetTransactionById(int id)

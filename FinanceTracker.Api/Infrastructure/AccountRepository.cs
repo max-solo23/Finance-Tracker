@@ -1,3 +1,4 @@
+using FinanceTracker.Api.Application.DTOs;
 using FinanceTracker.Api.Domain;
 using Microsoft.EntityFrameworkCore;
 
@@ -73,13 +74,19 @@ public class AccountRepository : IAccountRepository
             .Where(user => user.UserId == userId).CountAsync();
     }
 
-    public async Task<List<Account>> GetPaged(int userId, int page, int pageSize)
+    public async Task<List<AccountSummaryDto>> GetPaged(int userId, int page, int pageSize)
     {
         return await _context.Accounts
             .Where(user => user.UserId == userId)
             .OrderBy(account => account.Id)
             .Skip((page -1) * pageSize)
             .Take(pageSize)
+            .Select(a => new AccountSummaryDto
+            {
+                Id = a.Id,
+                Name = a.Name,
+                Balance = a.Transactions.Sum(t => t.Amount)
+            })
             .ToListAsync();
     }
 

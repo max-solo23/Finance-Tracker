@@ -4,7 +4,7 @@ namespace FinanceTracker.Api.Application;
 
 public interface IAccountService
 {
-    Task<PagedResponse<Account>> GetAll(int userId, int page, int pageSize);
+    Task<PagedResponse<AccountSummaryDto>> GetAll(int userId, int page, int pageSize);
     Task<Account?> GetById(int id, int userId);
     Task<Account> Create(string name, int userId);
     Task<Account?> Update(int id, string name, int userId);

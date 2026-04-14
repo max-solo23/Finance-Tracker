@@ -1,3 +1,5 @@
+using FinanceTracker.Api.Application.DTOs;
+
 namespace FinanceTracker.Api.Domain;
 
 public interface IAccountRepository
@@ -9,5 +11,5 @@ public interface IAccountRepository
     Task<bool> Delete(int id, int userId);
     Task<List<int>> ExistsByIds(List<int> ids, int userId);
     Task<int> GetCount(int userId);
-    Task<List<Account>> GetPaged(int userId, int page, int pageSize);
+    Task<List<AccountSummaryDto>> GetPaged(int userId, int page, int pageSize);
 }

@@ -34,7 +34,7 @@ public class AccountService : IAccountService
         return existingIds;
     }
 
-    public async Task<PagedResponse<Account>> GetAll(int userId, int page, int pageSize)
+    public async Task<PagedResponse<AccountSummaryDto>> GetAll(int userId, int page, int pageSize)
     {
         pageSize = Math.Clamp(pageSize, 1, 50);
 
@@ -42,7 +42,7 @@ public class AccountService : IAccountService
 
         var accounts = await _repository.GetPaged(userId, page, pageSize);
 
-        return new PagedResponse<Account>(accounts, totalCount, page, pageSize);
+        return new PagedResponse<AccountSummaryDto>(accounts, totalCount, page, pageSize);
     }
 
     public Task<Account?> GetById(int id, int userId)

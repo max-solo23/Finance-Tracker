@@ -43,3 +43,4 @@ memory-tool.db
 *.db
 .omc
 .playwright-mcp
+.github

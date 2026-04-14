@@ -14,6 +14,7 @@ using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using System.Text.Json;
 using Microsoft.OpenApi.Models;
 using Microsoft.EntityFrameworkCore.Diagnostics;
+using Microsoft.AspNetCore.HttpLogging;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -72,7 +73,7 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend", policy =>
     {
-        policy.WithOrigins(builder.Configuration["Cors:AllowedOrigins"]!)
+        policy.WithOrigins(builder.Configuration["Cors:AllowedOrigins"]!.Split(','))
             .AllowAnyHeader()
             .AllowAnyMethod();
     });
@@ -150,6 +151,14 @@ builder.Services.AddSwaggerGen(options =>
     });
 });
 
+builder.Services.AddHttpLogging(options =>
+{
+    options.LoggingFields = HttpLoggingFields.RequestMethod
+        | HttpLoggingFields.RequestPath
+        | HttpLoggingFields.ResponseStatusCode
+        | HttpLoggingFields.Duration;
+});
+
 var app = builder.Build();
 
 if (string.IsNullOrEmpty(secretKey) || secretKey.Length < 32)
@@ -166,6 +175,7 @@ using (var scope = app.Services.CreateScope())
 }
 
 app.UseMiddleware<GlobalExceptionHandler>();
+app.UseHttpLogging();
 app.UseCors("AllowFrontend");
 
 if (!app.Environment.IsDevelopment())

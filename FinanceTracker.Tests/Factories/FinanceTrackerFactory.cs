@@ -2,6 +2,8 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Configuration;
+using Microsoft.AspNetCore.TestHost;
 using FinanceTracker.Api.Domain;
 
 namespace FinanceTracker.Tests.Factories;
@@ -10,20 +12,26 @@ public class FinanceTrackerFactory : WebApplicationFactory<Program>
 {
     private readonly string _dbPath = $"test_{Guid.NewGuid()}.db";
 
+    public FinanceTrackerFactory()
+    {
+        Environment.SetEnvironmentVariable("INTEGRATION_TEST", "true");
+    }
+
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.UseSetting("JwtSettings:SecretKey", "test-secret-key-for-integration-test-only!!");
         builder.UseSetting("JwtSettings:Issuer", "FinanceTracker");
         builder.UseSetting("JwtSettings:Audience", "FinanceTrackerUsers");
         builder.UseSetting("Cors:AllowedOrigins", "http://localhost:3000");
+        builder.UseSetting("INTEGRATION_TEST", "true");
 
-        builder.ConfigureServices(services =>
+        builder.ConfigureTestServices(services =>
         {
             var descriptor = services.SingleOrDefault(
                 d => d.ServiceType == typeof(DbContextOptions<FinanceTrackerContext>));
             if (descriptor != null) services.Remove(descriptor);
 
-            services.AddDbContext<FinanceTrackerContext>(options => 
+            services.AddDbContext<FinanceTrackerContext>(options =>
                 options.UseSqlite($"DataSource={_dbPath}"));
         });
     }

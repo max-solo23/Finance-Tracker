@@ -15,6 +15,7 @@ using System.Text.Json;
 using Microsoft.OpenApi.Models;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.AspNetCore.HttpLogging;
+using Microsoft.EntityFrameworkCore.SqlServer.Storage.Internal;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -45,12 +46,18 @@ builder.Services.Configure<ApiBehaviorOptions>(options =>
     options.SuppressModelStateInvalidFilter = true;
 });
 
-var pgConnection = builder.Configuration.GetConnectionString("PostgreSQL");
+var isTest = Environment.GetEnvironmentVariable("INTEGRATION_TEST") == "true";
+var pgConnection = isTest ? null : builder.Configuration.GetConnectionString("PostgreSQL");
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ?? "Data Source=finance.db";
+var sqlServerConnection = isTest
+    ? null
+    : builder.Configuration.GetConnectionString("SqlServer");
 
-builder.Services.AddDbContext<FinanceTrackerContext>(options => 
+builder.Services.AddDbContext<FinanceTrackerContext>(options =>
 {
-    if (!string.IsNullOrEmpty(pgConnection))
+    if (!string.IsNullOrEmpty(sqlServerConnection))
+        options.UseSqlServer(sqlServerConnection);
+    else if (!string.IsNullOrEmpty(pgConnection))
         options.UseNpgsql(pgConnection);
     else
     {
@@ -171,7 +178,10 @@ if (string.IsNullOrEmpty(secretKey) || secretKey.Length < 32)
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<FinanceTrackerContext>();
-    db.Database.Migrate();
+    if (!string.IsNullOrEmpty(sqlServerConnection))
+        db.Database.EnsureCreated();
+    else
+        db.Database.Migrate();
 }
 
 app.UseMiddleware<GlobalExceptionHandler>();

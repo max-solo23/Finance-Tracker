@@ -5,7 +5,7 @@ A personal finance tracking REST API for managing accounts and transactions.
 ## Tech Stack
 
 - **Runtime**: .NET 9.0, ASP.NET Core Web API
-- **Database**: SQLite (dev) / PostgreSQL (production)
+- **Database**: SQLite (dev) / PostgreSQL / SQL Server (production)
 - **ORM**: Entity Framework Core
 - **Auth**: JWT Bearer tokens + BCrypt password hashing
 - **Testing**: xUnit, integration tests with WebApplicationFactory
@@ -102,7 +102,9 @@ To authenticate:
 
 | Variable | Description | Example |
 |----------|-------------|---------|
-| `ConnectionStrings__DefaultConnection` | Database connection string | `Data Source=/app/data/finance.db` |
+| `ConnectionStrings__DefaultConnection` | SQLite connection string (fallback) | `Data Source=/app/data/finance.db` |
+| `ConnectionStrings__PostgreSQL` | PostgreSQL connection string | `Host=...;Database=...;Username=...` |
+| `ConnectionStrings__SqlServer` | SQL Server connection string | `Server=...;Database=...;User ID=...` |
 | `JwtSettings__SecretKey` | JWT signing secret (min 32 chars) | `your-secret-key-32-chars-minimum` |
 | `JwtSettings__Issuer` | JWT issuer | `FinanceTracker` |
 | `JwtSettings__Audience` | JWT audience | `FinanceTrackerUsers` |

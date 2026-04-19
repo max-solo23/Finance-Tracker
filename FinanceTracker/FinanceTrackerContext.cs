@@ -41,8 +41,12 @@ public class FinanceTrackerContext : DbContext
             .OnDelete(DeleteBehavior.Restrict);
 
         modelBuilder.Entity<Transfer>()
-        .HasIndex(t => t.IdempotencyKey)
-        .IsUnique();
+            .Property(t => t.IdempotencyKey)
+            .HasMaxLength(100);
+
+        modelBuilder.Entity<Transfer>()
+            .HasIndex(t => t.IdempotencyKey)
+            .IsUnique();
 
         modelBuilder.Entity<Transaction>()
             .HasOne<Account>()
@@ -59,5 +63,13 @@ public class FinanceTrackerContext : DbContext
             .WithMany()
             .HasForeignKey(a => a.UserId)
             .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<Transaction>()
+            .Property(t => t.Amount)
+            .HasPrecision(18, 2);
+
+        modelBuilder.Entity<Transfer>()
+            .Property(t => t.Amount)
+            .HasPrecision(18, 2);
     }
 }

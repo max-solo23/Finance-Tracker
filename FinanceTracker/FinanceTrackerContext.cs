@@ -7,6 +7,7 @@ public class FinanceTrackerContext : DbContext
     public DbSet<Transaction> Transactions { get; set; } = null!;
     public DbSet<Transfer> Transfers { get; set; } = null!;
     public DbSet<User> Users { get; set; } = null!;
+    public DbSet<RecurringSchedule> RecurringSchedules { get; set; } = null!;
 
     public FinanceTrackerContext()
     {
@@ -70,6 +71,10 @@ public class FinanceTrackerContext : DbContext
 
         modelBuilder.Entity<Transfer>()
             .Property(t => t.Amount)
+            .HasPrecision(18, 2);
+
+        modelBuilder.Entity<RecurringSchedule>()
+            .Property(r => r.Amount)
             .HasPrecision(18, 2);
     }
 }

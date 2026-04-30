@@ -1,5 +1,6 @@
 using FinanceTracker.Api.Domain;
 using FinanceTracker.Models;
+using Microsoft.EntityFrameworkCore;
 
 namespace FinanceTracker.Api.Infrastructure;
 
@@ -11,28 +12,42 @@ public class RecurringScheduleRepository : IRecurringScheduleRepository
         _context = financeTrackerContext;
     }
 
-    public Task<RecurringSchedule> Create(RecurringSchedule schedule)
+    public async Task<RecurringSchedule> Create(RecurringSchedule schedule)
     {
-        throw new NotImplementedException();
+        _context.RecurringSchedules.Add(schedule);
+
+        await _context.SaveChangesAsync();
+
+        return schedule;
     }
 
-    public Task Delete(RecurringSchedule schedule)
+    public async Task Delete(RecurringSchedule schedule)
     {
-        throw new NotImplementedException();
+        _context.RecurringSchedules.Remove(schedule);
+
+        await _context.SaveChangesAsync();
     }
 
-    public Task<List<RecurringSchedule>> GetAll(int userId)
+    public async Task<List<RecurringSchedule>> GetAll(int userId)
     {
-        throw new NotImplementedException();
+        return await _context.RecurringSchedules
+            .AsNoTracking()
+            .Where(recurringSchedule => recurringSchedule.UserId == userId)
+            .ToListAsync();
     }
 
-    public Task<RecurringSchedule?> GetById(int id, int userId)
-    {
-        throw new NotImplementedException();
+    public async Task<RecurringSchedule?> GetById(int id, int userId)
+    {        
+        return await _context.RecurringSchedules
+            .AsNoTracking()
+            .Where(recurringSchedule => recurringSchedule.Id == id && recurringSchedule.UserId == userId)
+            .FirstOrDefaultAsync();        
     }
 
-    public Task Update(RecurringSchedule schedule)
+    public async Task Update(RecurringSchedule schedule)
     {
-        throw new NotImplementedException();
+        _context.RecurringSchedules.Update(schedule);
+        
+        await _context.SaveChangesAsync();
     }
 }

@@ -1,16 +1,12 @@
-using System.Security.Claims;
 using FinanceTracker.Api.Application;
 using FinanceTracker.Api.Application.DTOs;
 using FinanceTracker.Api.Domain;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace FinanceTracker.Api.Controllers;
 
-[Authorize]
-[ApiController]
 [Route("api/[controller]")]
-public class AccountsController : ControllerBase
+public class AccountsController : BaseApiController
 {
     private readonly ILogger<AccountsController> _logger;
     private readonly IAccountService _accountService;
@@ -292,9 +288,9 @@ public class AccountsController : ControllerBase
             });
         }
 
-        var accountDeleted = await _accountService.Delete(id, userId);
+        var deleted = await _accountService.Delete(id, userId);
 
-        if (!accountDeleted)
+        if (!deleted)
         {
             _logger.LogWarning("Account id={Id} not found for deletion.", id);
 
@@ -456,12 +452,5 @@ public class AccountsController : ControllerBase
         _logger.LogInformation("Transfer successful id={Id}", transfer.Id);
 
         return Ok(new { message = "Transfer successful", transferId = transfer.Id});
-    }
-
-    private int? GetUserIdFromClaims()
-    {
-        var value = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (int.TryParse(value, out var id)) return id;
-        return null;
     }
 }

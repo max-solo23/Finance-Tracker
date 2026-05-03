@@ -29,18 +29,18 @@ public class AccountsController : BaseApiController
     [HttpGet("{id}")]
     public async Task<IActionResult> GetAccount(int id)
     {
-        if (GetUserIdFromClaims() is not int userId) return Unauthorized(new ErrorResponse
-        {
-            Message = "Invalid token claims",
-            StatusCode = 401
-        });
+        if (GetUserIdFromClaims() is not int userId) 
+            return Unauthorized(new ErrorResponse
+            {
+                Message = "Invalid token claims",
+                StatusCode = 401
+            });
 
         if (id <= 0)
         {
             _logger.LogWarning("Invalid account id={Id} - must be positive", id);
 
-            return StatusCode(400,
-                new ErrorResponse
+            return StatusCode(400, new ErrorResponse
                 {
                     Message = "ID must be a positive number.",
                     StatusCode = 400
@@ -54,8 +54,7 @@ public class AccountsController : BaseApiController
         {
             _logger.LogWarning("Account id={Id} not found", id);
 
-            return StatusCode(404,
-                new ErrorResponse
+            return StatusCode(404, new ErrorResponse
                 {
                     Message = "Account not found.",
                     StatusCode = 404
@@ -87,11 +86,12 @@ public class AccountsController : BaseApiController
     [HttpPost]
     public async Task<IActionResult> CreateAccount([FromBody] CreateAccountRequest request)
     {
-        if (GetUserIdFromClaims() is not int userId) return Unauthorized(new ErrorResponse
-        {
-            Message = "Invalid token claims",
-            StatusCode = 401
-        });
+        if (GetUserIdFromClaims() is not int userId) 
+            return Unauthorized(new ErrorResponse
+            {
+                Message = "Invalid token claims",
+                StatusCode = 401
+            });
 
         if (!ModelState.IsValid)
         {
@@ -126,18 +126,18 @@ public class AccountsController : BaseApiController
     [HttpPost("{id}/transactions")]
     public async Task<IActionResult> CreateTransaction(int id, [FromBody] CreateTransactionRequest request)
     {
-        if (GetUserIdFromClaims() is not int userId) return Unauthorized(new ErrorResponse
-        {
-            Message = "Invalid token claims",
-            StatusCode = 401
-        });
+        if (GetUserIdFromClaims() is not int userId) 
+            return Unauthorized(new ErrorResponse
+            {
+                Message = "Invalid token claims",
+                StatusCode = 401
+            });
 
         if (request.Amount == 0)
         {
             _logger.LogWarning("Transaction can't be 0.");
 
-            return StatusCode(422, 
-                new ErrorResponse
+            return StatusCode(422, new ErrorResponse
                 {
                     Message = "Transaction can't be 0, select positive number for income or negative for expense.",
                     StatusCode = 422
@@ -151,8 +151,7 @@ public class AccountsController : BaseApiController
         {
             _logger.LogWarning("Account id={Id} not found", id);
 
-            return StatusCode(404, 
-                new ErrorResponse
+            return StatusCode(404, new ErrorResponse
                 {
                     Message = "Account not found.",
                     StatusCode = 404
@@ -174,11 +173,12 @@ public class AccountsController : BaseApiController
     [HttpGet("{id}/transactions")]
     public async Task<IActionResult> GetAllTransactions(int id, [FromQuery] int page = 1, [FromQuery] int pageSize = 10)
     {
-        if (GetUserIdFromClaims() is not int userId) return Unauthorized(new ErrorResponse
-        {
-            Message = "Invalid token claims",
-            StatusCode = 401
-        });
+        if (GetUserIdFromClaims() is not int userId) 
+            return Unauthorized(new ErrorResponse
+            {
+                Message = "Invalid token claims",
+                StatusCode = 401
+            });
 
         if (id <= 0)
         {
@@ -216,11 +216,12 @@ public class AccountsController : BaseApiController
     [HttpPut("{id}")]
     public async Task<IActionResult> UpdateAccount(int id, [FromBody] UpdateAccountRequest request)
     {
-        if (GetUserIdFromClaims() is not int userId) return Unauthorized(new ErrorResponse
-        {
-            Message = "Invalid token claims",
-            StatusCode = 401
-        });
+        if (GetUserIdFromClaims() is not int userId) 
+            return Unauthorized(new ErrorResponse
+            {
+                Message = "Invalid token claims",
+                StatusCode = 401
+            });
 
         if (id <= 0)
         {
@@ -271,11 +272,12 @@ public class AccountsController : BaseApiController
     [HttpDelete("{id}")]
     public async Task<IActionResult> DeleteAccount(int id)
     {
-        if (GetUserIdFromClaims() is not int userId) return Unauthorized(new ErrorResponse
-        {
-            Message = "Invalid token claims",
-            StatusCode = 401
-        });
+        if (GetUserIdFromClaims() is not int userId) 
+            return Unauthorized(new ErrorResponse
+            {
+                Message = "Invalid token claims",
+                StatusCode = 401
+            });
 
         if (id <= 0)
         {
@@ -309,11 +311,12 @@ public class AccountsController : BaseApiController
     [HttpDelete("{accountId}/transactions/{transactionId}")]
     public async Task<IActionResult> DeleteTransaction(int accountId, int transactionId)
     {
-        if (GetUserIdFromClaims() is not int userId) return Unauthorized(new ErrorResponse
-        {
-            Message = "Invalid token claims",
-            StatusCode = 401
-        });
+        if (GetUserIdFromClaims() is not int userId) 
+            return Unauthorized(new ErrorResponse
+            {
+                Message = "Invalid token claims",
+                StatusCode = 401
+            });
 
         var transactionDeleted = await _transactionRepository.Delete(accountId, transactionId, userId);
 
@@ -331,11 +334,12 @@ public class AccountsController : BaseApiController
     [HttpPost("bulk-validate")]
     public async Task<IActionResult> BulkValidateAccount([FromBody] BulkValidateRequest request)
     {
-        if (GetUserIdFromClaims() is not int userId) return Unauthorized(new ErrorResponse
-        {
-            Message = "Invalid token claims",
-            StatusCode = 401
-        });
+        if (GetUserIdFromClaims() is not int userId) 
+            return Unauthorized(new ErrorResponse
+            {
+                Message = "Invalid token claims",
+                StatusCode = 401
+            });
 
         if (!ModelState.IsValid)
         {
@@ -382,11 +386,12 @@ public class AccountsController : BaseApiController
             });
         }
 
-        if (GetUserIdFromClaims() is not int userId) return Unauthorized(new ErrorResponse
-        {
-            Message = "Invalid token claims",
-            StatusCode = 401
-        });
+        if (GetUserIdFromClaims() is not int userId) 
+            return Unauthorized(new ErrorResponse
+            {
+                Message = "Invalid token claims",
+                StatusCode = 401
+            });
 
         var existingTransfer = await _transferRepository.GetByIdempotencyKey(request.IdempotencyKey);
 

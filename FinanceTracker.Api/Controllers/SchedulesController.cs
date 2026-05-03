@@ -1,7 +1,9 @@
+using FinanceTracker.Api.Application;
 using FinanceTracker.Api.Application.DTOs;
 using FinanceTracker.Api.Domain;
 using FinanceTracker.Models;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore.Metadata.Internal;
 
 namespace FinanceTracker.Api.Controllers;
 
@@ -10,14 +12,17 @@ public class SchedulesController : BaseApiController
 {
     private readonly ILogger<SchedulesController> _logger;
     private readonly IRecurringScheduleRepository _recurringScheduleRepository;
+    private readonly IAccountService _accountService;
 
     public SchedulesController(
         ILogger<SchedulesController> logger,
-        IRecurringScheduleRepository recurringScheduleRepository
+        IRecurringScheduleRepository recurringScheduleRepository,
+        IAccountService accountService
     )
     {
         _logger = logger;
         _recurringScheduleRepository = recurringScheduleRepository;
+        _accountService = accountService;
     }
 
     [HttpGet]
@@ -112,5 +117,132 @@ public class SchedulesController : BaseApiController
         await _recurringScheduleRepository.Delete(scheduleToDelete);
 
         return NoContent();
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> CreateSchedule([FromBody] CreateScheduleRequest schedule)
+    {
+        if (GetUserIdFromClaims() is not int userId) 
+            return Unauthorized(new ErrorResponse
+        {
+            Message = "Invalid token claims",
+            StatusCode = 401
+        });
+
+        if (!ModelState.IsValid)
+        {
+            _logger.LogWarning("Invalid schedule creation request: {Errors}", ModelState);
+
+            return StatusCode(422, new ErrorResponse
+                {
+                    Message = "Invalid schedule creation request.",
+                    StatusCode = 422,
+                    Errors = ModelState
+                        .Where(kvp => kvp.Value?.Errors.Count > 0)
+                        .ToDictionary(
+                            kvp => kvp.Key,
+                            kvp => kvp.Value?.Errors.Select(e => e.ErrorMessage).ToList() ?? new List<string>()
+                        )
+                }
+            );  
+        }
+
+        var account = await _accountService.GetById(schedule.AccountId, userId);
+
+        if (account == null)
+        {
+            _logger.LogWarning("Account id={Id} not found", schedule.AccountId);
+
+            return StatusCode(404, new ErrorResponse
+            {
+                Message = "Account not found.",
+                StatusCode = 404
+            });
+        }
+
+        var newRecurringSchedule = new RecurringSchedule(
+            userId, 
+            schedule.AccountId, 
+            schedule.Name, 
+            schedule.Description, 
+            schedule.Amount, 
+            schedule.IntervalMonths,
+            schedule.AnchorDate,
+            schedule.Category
+        );
+
+        await _recurringScheduleRepository.Create(newRecurringSchedule);
+
+        _logger.LogInformation("Schedule created with Id={Id}", newRecurringSchedule.Id);
+
+        return CreatedAtAction(
+            nameof(GetScheduleById),
+            new { id = newRecurringSchedule.Id},
+            newRecurringSchedule
+        );
+    }
+
+    [HttpPut("{id}")]
+    public async Task<IActionResult> UpdateSchedule(int id, [FromBody] UpdateScheduleRequest updateRequest)
+    {
+        if (GetUserIdFromClaims() is not int userId)
+            return Unauthorized(new ErrorResponse
+            {
+                Message = "Invalid token claims",
+                StatusCode = 401
+            });
+
+        if (id <= 0)
+        {
+            _logger.LogWarning("Invalid schedule id={Id}", id);
+
+            return StatusCode(400, new ErrorResponse
+            {
+                Message = "Schedule ID must be a positive number.",
+                StatusCode = 400
+            });
+        }
+
+        if (!ModelState.IsValid)
+        {
+            _logger.LogWarning("Invalid update request for schedule id={Id}", id);
+
+            return StatusCode(422, new ErrorResponse
+            {
+                Message = "Invalid schedule update request.",
+                StatusCode = 422,
+                Errors = ModelState
+                    .Where(kvp => kvp.Value?.Errors.Count > 0)
+                    .ToDictionary(
+                        kvp => kvp.Key,
+                        kvp => kvp.Value?.Errors.Select(e => e.ErrorMessage).ToList() ?? new List<string>()
+                    )
+            });
+        }
+
+        var existingSchedule = await _recurringScheduleRepository.GetById(id, userId);
+
+        if (existingSchedule == null)
+        {
+            _logger.LogWarning("Schedule with id={Id} not found.", id);
+
+            return StatusCode(404, new ErrorResponse
+            {
+                Message = "Schedule not found",
+                StatusCode = 404
+            });
+        }
+
+        if (updateRequest.AccountId != null) existingSchedule.AccountId = updateRequest.AccountId.Value;
+        if (updateRequest.Name != null) existingSchedule.Name = updateRequest.Name;
+        if (updateRequest.Description != null) existingSchedule.Description = updateRequest.Description;
+        if (updateRequest.Amount != null) existingSchedule.Amount = updateRequest.Amount.Value;
+        if (updateRequest.IntervalMonths != null) existingSchedule.IntervalMonths = updateRequest.IntervalMonths.Value;
+        if (updateRequest.AnchorDate != null) existingSchedule.AnchorDate = updateRequest.AnchorDate.Value;
+        if (updateRequest.Category != null) existingSchedule.Category = updateRequest.Category;
+
+        await _recurringScheduleRepository.Update(existingSchedule);
+
+        return Ok(existingSchedule);
     }
 }

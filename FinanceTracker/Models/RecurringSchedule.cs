@@ -29,7 +29,7 @@ public class RecurringSchedule
         Description = description;
         Amount = amount;
         IntervalMonths = intervalMonths;
-        AnchorDate = anchorDate;
+        AnchorDate = DateTime.SpecifyKind(anchorDate, DateTimeKind.Utc);
         Category = category;
     }
 

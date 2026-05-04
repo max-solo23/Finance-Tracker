@@ -238,7 +238,7 @@ public class SchedulesController : BaseApiController
         if (updateRequest.Description != null) existingSchedule.Description = updateRequest.Description;
         if (updateRequest.Amount != null) existingSchedule.Amount = updateRequest.Amount.Value;
         if (updateRequest.IntervalMonths != null) existingSchedule.IntervalMonths = updateRequest.IntervalMonths.Value;
-        if (updateRequest.AnchorDate != null) existingSchedule.AnchorDate = updateRequest.AnchorDate.Value;
+        if (updateRequest.AnchorDate != null) existingSchedule.AnchorDate = DateTime.SpecifyKind(updateRequest.AnchorDate.Value, DateTimeKind.Utc);
         if (updateRequest.Category != null) existingSchedule.Category = updateRequest.Category;
 
         await _recurringScheduleRepository.Update(existingSchedule);

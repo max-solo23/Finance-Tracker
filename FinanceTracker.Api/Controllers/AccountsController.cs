@@ -318,9 +318,9 @@ public class AccountsController : BaseApiController
                 StatusCode = 401
             });
 
-        var transactionDeleted = await _transactionRepository.Delete(accountId, transactionId, userId);
+        var transactionToDelete = await _transactionRepository.Delete(accountId, transactionId, userId);
 
-        if (!transactionDeleted)
+        if (!transactionToDelete)
         {
             _logger.LogWarning(
                 "Account id={AccountId} or Transaction id={TransactionId} invalid.", accountId, transactionId);
@@ -329,6 +329,32 @@ public class AccountsController : BaseApiController
 
         _logger.LogInformation("Transaction id={TransactionId} deleted.", transactionId);
         return NoContent();
+    }
+
+    [HttpPut("{accountId}/transactions/{transactionId}")]
+    public async Task<IActionResult> UpdateTransaction(
+        int accountId, int transactionId, [FromBody] UpdateTransactionRequest request)
+    {
+        if (GetUserIdFromClaims() is not int userId)
+            return Unauthorized(new ErrorResponse
+            {
+                Message = "Invalid token claims",
+                StatusCode = 401
+            });
+        
+        var transactionToUpdate = await _transactionRepository.Update(
+            accountId, transactionId, userId, request
+        );
+
+        if (transactionToUpdate == null)
+        {
+            _logger.LogWarning(
+                "Account id={AccountId} or Transaction id={TransactionId} invalid.", accountId, transactionId);
+            return NotFound();
+        }
+
+        _logger.LogInformation("Transaction id={TransactionId} updated.", transactionId);
+        return Ok(transactionToUpdate);        
     }
 
     [HttpPost("bulk-validate")]

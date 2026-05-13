@@ -1,5 +1,5 @@
+using FinanceTracker.Api.Application.DTOs;
 using FinanceTracker.Api.Domain;
-using FinanceTracker.Models;
 using Microsoft.EntityFrameworkCore;
 
 namespace FinanceTracker.Api.Infrastructure;
@@ -47,6 +47,26 @@ public class TransactionRepository : ITransactionRepository
         _context.Transactions.Remove(transactionToDelete);
         await _context.SaveChangesAsync();
         return true;
+    }
+
+    public async Task<Transaction?> Update(
+        int accountId, int transactionId, int userId, UpdateTransactionRequest request)
+    {
+        var transactionToUpdate = await _context.Transactions
+            .Where(t => t.Id == transactionId && t.AccountId == accountId)
+            .Where(t => _context.Accounts.Any(
+                account => account.Id == accountId && account.UserId == userId))
+            .FirstOrDefaultAsync();
+
+        if (transactionToUpdate == null) return null;
+
+        if (request.Amount != null) transactionToUpdate.Amount = request.Amount.Value;
+        if (request.Description != null) transactionToUpdate.Description = request.Description;
+        if (request.Date != null) transactionToUpdate.Date = request.Date.Value;
+        if (request.Category != null) transactionToUpdate.Category = request.Category;
+
+        await _context.SaveChangesAsync();
+        return transactionToUpdate;
     }
 
     public async Task<int> GetCount(int accountId, int userId)

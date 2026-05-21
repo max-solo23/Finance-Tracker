@@ -159,7 +159,7 @@ public class AccountsController : BaseApiController
             );
         }
 
-        var transaction = await _transactionRepository.Create(id, request.Amount, request.Description, request.Category);
+        var transaction = await _transactionRepository.Create(id, request.Amount, request.Description, request.Category, request.Date);
 
         _logger.LogInformation("Transaction created for account {Id}", id);
 

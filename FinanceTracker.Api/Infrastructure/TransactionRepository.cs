@@ -14,7 +14,7 @@ public class TransactionRepository : ITransactionRepository
     }
     
     public async Task<Transaction> Create(
-        int accountId, decimal amount, string description, string? category)
+        int accountId, decimal amount, string description, string? category, DateTime? date)
     {
         var account = await _context.Accounts.FindAsync(accountId);
 
@@ -23,7 +23,11 @@ public class TransactionRepository : ITransactionRepository
             throw new InvalidOperationException($"Account {accountId} not found.");
         }
 
-        var transaction = new Transaction(amount, description, DateTime.UtcNow);
+        var resolvedDate = date.HasValue
+            ? DateTime.SpecifyKind(date.Value, DateTimeKind.Utc)
+            : DateTime.UtcNow;
+
+        var transaction = new Transaction(amount, description, resolvedDate);
 
         transaction.Category = category;
 

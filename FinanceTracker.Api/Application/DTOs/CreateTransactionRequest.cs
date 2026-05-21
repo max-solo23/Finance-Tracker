@@ -10,4 +10,5 @@ public class CreateTransactionRequest
     public string Description { set; get; }  = string.Empty;
     [StringLength(20, MinimumLength = 1, ErrorMessage = "Category must be maximum 20 characters.")]
     public string? Category { set; get; }
+    public DateTime? Date { get; set; }
 }

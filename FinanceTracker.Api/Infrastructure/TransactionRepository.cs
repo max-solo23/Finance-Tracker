@@ -62,7 +62,7 @@ public class TransactionRepository : ITransactionRepository
 
         if (request.Amount != null) transactionToUpdate.Amount = request.Amount.Value;
         if (request.Description != null) transactionToUpdate.Description = request.Description;
-        if (request.Date != null) transactionToUpdate.Date = request.Date.Value;
+        if (request.Date != null) transactionToUpdate.Date = DateTime.SpecifyKind(request.Date.Value, DateTimeKind.Utc);
         if (request.Category != null) transactionToUpdate.Category = request.Category;
 
         await _context.SaveChangesAsync();

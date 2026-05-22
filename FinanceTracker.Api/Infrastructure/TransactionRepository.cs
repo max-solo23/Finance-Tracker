@@ -90,7 +90,7 @@ public class TransactionRepository : ITransactionRepository
             .Where(t => _context.Accounts.Any(
                 a => a.Id == accountId && a.UserId == userId
             ))
-            .OrderBy(t => t.Id)
+            .OrderByDescending(t => t.Date)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
             .ToListAsync();

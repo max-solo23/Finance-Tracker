@@ -402,6 +402,23 @@ public class AccountsController : BaseApiController
     [HttpPost("transfer")]
     public async Task<IActionResult> Transfer([FromBody] TransferRequest request)
     {
+        if (!ModelState.IsValid)
+        {
+            return StatusCode(422, new ErrorResponse
+            {
+                Message = "Invalid transfer request.",
+                StatusCode = 422,
+                Errors = ModelState
+                    .Where(kvp => kvp.Value?.Errors.Count > 0)
+                    .ToDictionary(
+                        kvp => kvp.Key,
+                        kvp => kvp.Value?.Errors
+                            .Select(e => e.ErrorMessage)
+                            .ToList() ?? new List<string>()
+                    )
+            });
+        }
+
         if (request.FromAccountId == request.ToAccountId)
         {
             _logger.LogWarning("Self-transfer attempted: AccountId={AccountId}.", request.FromAccountId);

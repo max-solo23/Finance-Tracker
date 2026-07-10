@@ -165,4 +165,32 @@ public class TransferTests : IClassFixture<FinanceTrackerFactory>
 
         Assert.Equal(HttpStatusCode.UnprocessableEntity, response.StatusCode);
     }
+
+    [Fact]
+    public async Task Transfer_Returns422_WhenAmountIsNegative()
+    {
+        await AuthenticateAsync();
+
+        var fromAccountId = await CreateAccountAsync(100m);
+        var toAccountId = await CreateAccountAsync(100m);
+
+        var request = new
+        {
+            FromAccountId = fromAccountId,
+            ToAccountId = toAccountId,
+            Amount = -50m,
+            Description = "Negative transfer",
+            IdempotencyKey = Guid.NewGuid().ToString()
+        };
+
+        var content = new StringContent(
+            JsonSerializer.Serialize(request),
+            Encoding.UTF8,
+            "application/json"
+        );
+
+        var response = await _client.PostAsync("/api/accounts/transfer", content);
+
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, response.StatusCode);
+    }
 }    

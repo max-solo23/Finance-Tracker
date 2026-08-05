@@ -1,53 +1,63 @@
-# Finance Tracker API
+<p align="center">
+  <img src="./assets/readme/hero.svg" width="100%" alt="Finance Tracker — a .NET 9 REST API for tracking accounts, transactions, and recurring transfers, shown with its four-layer architecture: API, Application, Domain, Infrastructure.">
+</p>
 
-A personal finance tracking REST API for managing accounts and transactions.
+<p align="center">
+  <img src="https://img.shields.io/badge/.NET-9.0-512BD4?style=flat-square" alt=".NET 9.0">
+  <img src="https://img.shields.io/badge/EF%20Core-9.0-512BD4?style=flat-square" alt="EF Core 9.0">
+  <img src="https://img.shields.io/badge/Auth-JWT-34D399?style=flat-square" alt="JWT auth">
+  <img src="https://img.shields.io/badge/Docker-ready-2496ED?style=flat-square" alt="Docker ready">
+  <img src="https://img.shields.io/badge/Tests-xUnit-F5A623?style=flat-square" alt="xUnit tests">
+</p>
 
-## Tech Stack
+A personal finance tracking REST API — register, create accounts, log transactions, and automate recurring transfers. Runs on SQLite in dev, PostgreSQL or SQL Server in production, with real JWT auth and per-user data isolation.
 
-- **Runtime**: .NET 9.0, ASP.NET Core Web API
-- **Database**: SQLite (dev) / PostgreSQL / SQL Server (production)
-- **ORM**: Entity Framework Core
-- **Auth**: JWT Bearer tokens + BCrypt password hashing
-- **Testing**: xUnit, integration tests with WebApplicationFactory
-- **Containerization**: Docker, docker-compose
+## Try it in 30 seconds
 
-## Architecture
+```bash
+# 1. register
+curl -X POST http://localhost:5029/api/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{"email":"you@example.com","password":"Password123"}'
 
+# 2. log in and grab the token
+curl -X POST http://localhost:5029/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"you@example.com","password":"Password123"}'
+
+# 3. create an account and log a transaction
+curl -X POST http://localhost:5029/api/accounts \
+  -H "Authorization: Bearer <token>" -H "Content-Type: application/json" \
+  -d '{"name":"Checking"}'
+
+curl -X POST http://localhost:5029/api/accounts/1/transactions \
+  -H "Authorization: Bearer <token>" -H "Content-Type: application/json" \
+  -d '{"amount":-42.50,"description":"Groceries","category":"Food"}'
 ```
-┌─────────────────────────────────────┐
-│            API Layer                │
-│  Controllers · Middleware · Auth    │
-│         FinanceTracker.Api          │
-└────────────────┬────────────────────┘
-                 │
-┌────────────────▼────────────────────┐
-│         Application Layer           │
-│       Services · DTOs · Interfaces  │
-│                                     │
-├─────────────────────────────────────┤
-│           Domain Layer              │
-│    Entities: Account, Transaction,  │
-│    User · Repository Interfaces     │
-│            FinanceTracker           │
-├─────────────────────────────────────┤
-│        Infrastructure Layer         │
-│   EF Core · Repositories · DbContext│
-└─────────────────────────────────────┘
-```
 
-> Application, Domain, and Infrastructure layers share the `FinanceTracker` project. `FinanceTracker.Api` is a separate project.
+Or skip curl entirely — Swagger UI at `/swagger` walks through the same flow with an Authorize button.
 
 ## Features
 
-- Register and login with JWT authentication
-- Create and manage accounts per user
-- Add, view, and categorize transactions
-- Transfer funds between accounts
-- Claim-based authorization (users access only their own data)
-- Rate limiting on auth endpoints
-- Health check endpoint at `/health`
+- Register and log in with JWT auth, BCrypt-hashed passwords
+- Accounts and transactions scoped per user — claim-based ownership, not just a filter
+- Transfers between accounts, plus recurring transfer schedules
+- Paginated list endpoints for accounts and transactions
+- Rate-limited login/register, HSTS + HTTPS redirection outside dev
+- Health check at `/health`, structured request logging
 
-## Running Locally
+## Architecture
+
+```mermaid
+graph TD
+    A["API Layer<br/>Controllers · Auth · Rate limiting"] --> B["Application Layer<br/>Services · DTOs · Validation"]
+    B --> C["Domain Layer<br/>Account · Transaction · User"]
+    C --> D["Infrastructure Layer<br/>EF Core · Repositories · DbContext"]
+```
+
+`FinanceTracker.Api` hosts the API layer. `FinanceTracker` hosts Application, Domain, and Infrastructure.
+
+## Running locally
 
 ```bash
 # from repo root
@@ -58,7 +68,7 @@ cd FinanceTracker.Api
 dotnet run
 ```
 
-API runs at `http://localhost:5029`. Database migrations are applied automatically on startup.
+API runs at `http://localhost:5029`. Migrations apply automatically on startup.
 
 Requires a JWT secret via user secrets:
 
@@ -66,7 +76,7 @@ Requires a JWT secret via user secrets:
 dotnet user-secrets set "JwtSettings:SecretKey" "your-secret-key-min-32-chars"
 ```
 
-## Running Tests
+## Running tests
 
 ```bash
 dotnet test
@@ -78,27 +88,9 @@ dotnet test
 docker-compose up --build
 ```
 
-API runs at `http://localhost:5029`. SQLite database is persisted in `./data/`. PostgreSQL is used in production.
+API runs at `http://localhost:5029`. SQLite is persisted in `./data/` for local use; PostgreSQL is used in production.
 
-## API Docs
-
-Interactive Swagger UI available at `http://localhost:5029/swagger` when running locally.
-
-To authenticate: 
-
-1. Register a user by calling `POST /api/auth/register`  with request body:
-
-```json
-{
-  "email": "user@example.com",
-  "password": "Password123"
-}
-```
-
-2. POST /api/auth/login with the same body to receive a JWT token.
-3. In Swagger, click Authorize and paste the token. All protected endpoints will include it automatically.
-
-## Environment Variables
+## Environment variables
 
 | Variable | Description | Example |
 |----------|-------------|---------|

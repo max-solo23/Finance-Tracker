@@ -1,0 +1,35 @@
+{
+  "commit": "ae8457f957b624799a09769f9ee590bb608e11c5",
+  "working_tree_dirty": true,
+  "working_tree_changes": [
+    "M .gitignore",
+    "?? package-lock.json",
+    "?? package.json"
+  ],
+  "generated_at": "2026-08-05T00:00:00Z",
+  "scanned_scope": [
+    "FinanceTracker.Api/",
+    "FinanceTracker/",
+    "FinanceTracker.Tests/",
+    "Dockerfile",
+    "docker-compose.yml",
+    "fly.toml",
+    "FinanceTracker.sln",
+    "README.md"
+  ],
+  "excluded_dirs": [
+    "**/bin/",
+    "**/obj/",
+    "node_modules/",
+    ".git/",
+    ".codegraph/"
+  ],
+  "fingerprint_algorithm": "sha256 over sorted list of '<git-hash-object blob sha>:<tracked file path>' entries per top-level module, concatenated and hashed",
+  "module_fingerprints": {
+    "FinanceTracker.Api": "07354acd602d03f8fddef60959a5dcebc43ffff387092b0f3f58fde65333ab02",
+    "FinanceTracker": "efac1d2ea0c13a58ba42793efd103e792e0ec9777f0f708f3a23865b0d0a9961",
+    "FinanceTracker.Tests": "0d0c8fec9a57751eba49965921daefcf5c7bee45e6ae7a7e2f1e585889a96dcf",
+    "root": "330f70449d1d4042f8332a050212edc0e32acb8659644fec73ae98ca4eab36ba"
+  },
+  "note": "package.json/package-lock.json in the repo root are untracked and unrelated to this .NET solution (no scripts reference them); not modeled as a node. External frontend repo (financetracker.web) is out of scope for fingerprinting."
+}

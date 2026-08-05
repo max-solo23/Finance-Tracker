@@ -1,0 +1,567 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Finance-Tracker — Code Map</title>
+<style>
+  :root{
+    --bg:#0b0f14; --panel:#11161d; --panel2:#161d26; --border:#232c38;
+    --text:#e6edf3; --muted:#8b98a5; --accent:#5aa9ff;
+    --edge:#3a4655; --edge-dim:#232c38;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;height:100%;background:var(--bg);color:var(--text);
+    font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;overflow:hidden;}
+  #app{display:flex;flex-direction:column;height:100vh;}
+
+  header{display:flex;align-items:center;gap:16px;padding:10px 16px;
+    background:var(--panel);border-bottom:1px solid var(--border);flex-shrink:0;z-index:5;}
+  header h1{font-size:15px;margin:0;font-weight:600;letter-spacing:.2px;}
+  header .meta{font-size:12px;color:var(--muted);display:flex;gap:14px;flex-wrap:wrap;}
+  header .meta code{background:var(--panel2);padding:1px 6px;border-radius:4px;border:1px solid var(--border);}
+  header .spacer{flex:1;}
+
+  #search{background:var(--panel2);border:1px solid var(--border);color:var(--text);
+    padding:6px 10px;border-radius:6px;font-size:13px;width:220px;outline:none;}
+  #search:focus{border-color:var(--accent);}
+
+  #main{flex:1;position:relative;overflow:hidden;}
+  svg{width:100%;height:100%;display:block;cursor:grab;}
+  svg.panning{cursor:grabbing;}
+
+  .edge{stroke:var(--edge);stroke-width:1.4;fill:none;marker-end:url(#arrow);opacity:.85;}
+  .edge.dim{opacity:.08;}
+  .edge.hi{stroke:var(--accent);stroke-width:2.4;opacity:1;marker-end:url(#arrow-hi);}
+  .edge.flowhi{stroke:#ffb454;stroke-width:3;opacity:1;marker-end:url(#arrow-flow);}
+  .edge-label{fill:var(--muted);font-size:9px;pointer-events:none;}
+
+  .node{cursor:pointer;}
+  .node rect{stroke-width:1.5;filter:drop-shadow(0 1px 3px rgba(0,0,0,.4));}
+  .node.dim{opacity:.18;}
+  .node.hi rect{stroke:#fff;stroke-width:2;}
+  .node.selected rect{stroke:#fff;stroke-width:2.5;}
+  .node text{fill:#eef3f8;font-size:11.5px;font-weight:600;pointer-events:none;}
+  .node text.sub{fill:var(--muted);font-size:9.5px;font-weight:400;}
+
+  #legend{position:absolute;left:14px;bottom:14px;background:var(--panel);border:1px solid var(--border);
+    border-radius:8px;padding:10px 12px;font-size:11.5px;max-width:210px;}
+  #legend .row{display:flex;align-items:center;gap:7px;margin:3px 0;}
+  #legend .sw{width:11px;height:11px;border-radius:3px;flex-shrink:0;}
+  #legend h3{margin:0 0 6px;font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.4px;}
+
+  #flows{position:absolute;left:14px;top:14px;background:var(--panel);border:1px solid var(--border);
+    border-radius:8px;padding:10px 12px;font-size:12px;max-width:340px;}
+  #flows h3{margin:0 0 6px;font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.4px;}
+  .flow-chip{display:block;width:100%;text-align:left;background:var(--panel2);border:1px solid var(--border);
+    color:var(--text);padding:6px 8px;border-radius:6px;margin-bottom:5px;cursor:pointer;font-size:11.5px;line-height:1.3;}
+  .flow-chip:hover{border-color:var(--accent);}
+  .flow-chip.active{border-color:#ffb454;background:rgba(255,180,84,.12);}
+
+  #panel{position:absolute;right:14px;top:14px;bottom:14px;width:340px;background:var(--panel);
+    border:1px solid var(--border);border-radius:8px;padding:14px;overflow-y:auto;font-size:12.5px;
+    display:none;line-height:1.5;}
+  #panel.show{display:block;}
+  #panel h2{font-size:15px;margin:0 0 2px;}
+  #panel .path{color:var(--muted);font-size:11px;margin-bottom:10px;word-break:break-all;}
+  #panel .badge{display:inline-block;background:var(--panel2);border:1px solid var(--border);
+    border-radius:10px;padding:1px 8px;font-size:10.5px;color:var(--muted);margin-bottom:8px;}
+  #panel h4{font-size:11px;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);
+    margin:12px 0 5px;}
+  #panel ul{margin:0;padding-left:16px;}
+  #panel li{margin-bottom:3px;}
+  #panel .empty{color:var(--muted);font-style:italic;}
+  #panel .close{position:absolute;right:10px;top:10px;background:none;border:none;color:var(--muted);
+    font-size:16px;cursor:pointer;}
+  #panel .close:hover{color:var(--text);}
+  #panel code{background:var(--panel2);padding:0 4px;border-radius:3px;font-size:11px;}
+
+  #controls{position:absolute;right:14px;bottom:14px;display:flex;gap:6px;}
+  #controls button{background:var(--panel);border:1px solid var(--border);color:var(--text);
+    width:30px;height:30px;border-radius:6px;cursor:pointer;font-size:15px;}
+  #controls button:hover{border-color:var(--accent);}
+
+  #hint{position:absolute;bottom:14px;left:50%;transform:translateX(-50%);color:var(--muted);
+    font-size:11px;background:var(--panel);border:1px solid var(--border);padding:4px 10px;border-radius:6px;
+    pointer-events:none;}
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <h1>Finance-Tracker</h1>
+    <div class="meta">
+      <span>generated <code id="gen-time"></code></span>
+      <span>commit <code id="gen-commit"></code></span>
+    </div>
+    <div class="spacer"></div>
+    <input id="search" type="text" placeholder="Search modules, paths, roles…" />
+  </header>
+  <div id="main">
+    <svg id="svg"></svg>
+    <div id="flows">
+      <h3>Key flows</h3>
+      <div id="flow-list"></div>
+    </div>
+    <div id="legend">
+      <h3>Legend</h3>
+      <div id="legend-list"></div>
+    </div>
+    <div id="panel">
+      <button class="close" onclick="closePanel()">✕</button>
+      <div id="panel-body"></div>
+    </div>
+    <div id="controls">
+      <button onclick="zoomBy(1.2)" title="Zoom in">+</button>
+      <button onclick="zoomBy(0.8)" title="Zoom out">−</button>
+      <button onclick="resetView()" title="Reset view">⤢</button>
+    </div>
+    <div id="hint">Click a node to trace it · click a flow to highlight its path · drag to reposition · scroll to zoom</div>
+  </div>
+</div>
+
+<script>
+const DATA = {
+  "generated_at": "2026-08-05T00:00:00Z",
+  "generated_from_commit": "ae8457f957b624799a09769f9ee590bb608e11c5",
+  "nodes": [
+    {"id":"frontend-web","path":"external:financetracker.web (separate repo)","role":"external","label":"Frontend Web","sublabel":"Next.js 15 (external repo)","group":"external"},
+    {"id":"api-program","path":"FinanceTracker.Api/Program.cs","role":"host","label":"Program.cs","sublabel":"ASP.NET Core host / DI / pipeline","group":"host"},
+    {"id":"global-exception-handler","path":"FinanceTracker.Api/Middleware/GlobalExceptionHandler.cs","role":"middleware","label":"GlobalExceptionHandler","sublabel":"error -> JSON 500","group":"host"},
+    {"id":"auth-controller","path":"FinanceTracker.Api/Controllers/AuthController.cs","role":"controller","label":"AuthController","sublabel":"register / login (JWT)","group":"controller"},
+    {"id":"accounts-controller","path":"FinanceTracker.Api/Controllers/AccountsController.cs","role":"controller","label":"AccountsController","sublabel":"accounts, transactions, transfer","group":"controller"},
+    {"id":"schedules-controller","path":"FinanceTracker.Api/Controllers/SchedulesController.cs","role":"controller","label":"SchedulesController","sublabel":"recurring schedules CRUD","group":"controller"},
+    {"id":"account-service","path":"FinanceTracker.Api/Application/Services/AccountService.cs","role":"service","label":"AccountService","sublabel":"application layer","group":"service"},
+    {"id":"account-repository","path":"FinanceTracker.Api/Infrastructure/AccountRepository.cs","role":"repository","label":"AccountRepository","sublabel":"EF Core data access","group":"repository"},
+    {"id":"transaction-repository","path":"FinanceTracker.Api/Infrastructure/TransactionRepository.cs","role":"repository","label":"TransactionRepository","sublabel":"EF Core data access","group":"repository"},
+    {"id":"transfer-repository","path":"FinanceTracker.Api/Infrastructure/TransferRepository.cs","role":"repository","label":"TransferRepository","sublabel":"idempotent transfers","group":"repository"},
+    {"id":"user-repository","path":"FinanceTracker.Api/Infrastructure/UserRepository.cs","role":"repository","label":"UserRepository","sublabel":"EF Core data access","group":"repository"},
+    {"id":"recurring-schedule-repository","path":"FinanceTracker.Api/Infrastructure/RecurringScheduleRepository.cs","role":"repository","label":"RecurringScheduleRepository","sublabel":"EF Core data access","group":"repository"},
+    {"id":"dtos","path":"FinanceTracker.Api/Application/DTOs/","role":"model","label":"DTOs","sublabel":"request/response contracts","group":"model"},
+    {"id":"domain-models","path":"FinanceTracker/Models/","role":"model","label":"Domain Models","sublabel":"Account, Transaction, Transfer, User, RecurringSchedule","group":"model"},
+    {"id":"db-context","path":"FinanceTracker/FinanceTrackerContext.cs","role":"data-access","label":"FinanceTrackerContext","sublabel":"EF Core DbContext","group":"data"},
+    {"id":"database","path":"external","role":"external-store","label":"Database","sublabel":"SQLite / PostgreSQL / SQL Server","group":"store"},
+    {"id":"console-app","path":"FinanceTracker/Console/","role":"app","label":"Console App","sublabel":"standalone CLI (Layer 1/2)","group":"app"},
+    {"id":"integration-tests","path":"FinanceTracker.Tests/","role":"test","label":"Integration Tests","sublabel":"xUnit + WebApplicationFactory","group":"test"},
+    {"id":"docker-flyio","path":"Dockerfile, docker-compose.yml, fly.toml","role":"deployment","label":"Docker / Fly.io","sublabel":"build + deploy config","group":"deploy"}
+  ],
+  "edges": [
+    {"from":"frontend-web","to":"auth-controller","type":"calls"},
+    {"from":"frontend-web","to":"accounts-controller","type":"calls"},
+    {"from":"frontend-web","to":"schedules-controller","type":"calls"},
+    {"from":"api-program","to":"global-exception-handler","type":"calls"},
+    {"from":"api-program","to":"db-context","type":"imports"},
+    {"from":"api-program","to":"account-repository","type":"imports"},
+    {"from":"api-program","to":"transaction-repository","type":"imports"},
+    {"from":"api-program","to":"account-service","type":"imports"},
+    {"from":"api-program","to":"transfer-repository","type":"imports"},
+    {"from":"api-program","to":"user-repository","type":"imports"},
+    {"from":"api-program","to":"recurring-schedule-repository","type":"imports"},
+    {"from":"api-program","to":"auth-controller","type":"calls"},
+    {"from":"api-program","to":"accounts-controller","type":"calls"},
+    {"from":"api-program","to":"schedules-controller","type":"calls"},
+    {"from":"auth-controller","to":"user-repository","type":"calls"},
+    {"from":"accounts-controller","to":"account-service","type":"calls"},
+    {"from":"accounts-controller","to":"transaction-repository","type":"calls"},
+    {"from":"accounts-controller","to":"transfer-repository","type":"calls"},
+    {"from":"accounts-controller","to":"dtos","type":"imports"},
+    {"from":"schedules-controller","to":"recurring-schedule-repository","type":"calls"},
+    {"from":"schedules-controller","to":"account-service","type":"calls"},
+    {"from":"schedules-controller","to":"domain-models","type":"imports"},
+    {"from":"account-service","to":"account-repository","type":"calls"},
+    {"from":"account-repository","to":"db-context","type":"writes"},
+    {"from":"account-repository","to":"db-context","type":"reads"},
+    {"from":"account-repository","to":"dtos","type":"imports"},
+    {"from":"transaction-repository","to":"db-context","type":"writes"},
+    {"from":"transaction-repository","to":"db-context","type":"reads"},
+    {"from":"transaction-repository","to":"domain-models","type":"imports"},
+    {"from":"transfer-repository","to":"db-context","type":"writes"},
+    {"from":"transfer-repository","to":"db-context","type":"reads"},
+    {"from":"transfer-repository","to":"domain-models","type":"imports"},
+    {"from":"user-repository","to":"db-context","type":"writes"},
+    {"from":"user-repository","to":"db-context","type":"reads"},
+    {"from":"recurring-schedule-repository","to":"db-context","type":"writes"},
+    {"from":"recurring-schedule-repository","to":"db-context","type":"reads"},
+    {"from":"db-context","to":"domain-models","type":"imports"},
+    {"from":"db-context","to":"database","type":"writes"},
+    {"from":"db-context","to":"database","type":"reads"},
+    {"from":"console-app","to":"db-context","type":"imports"},
+    {"from":"console-app","to":"domain-models","type":"imports"},
+    {"from":"integration-tests","to":"api-program","type":"calls"},
+    {"from":"integration-tests","to":"db-context","type":"writes"},
+    {"from":"docker-flyio","to":"api-program","type":"imports"},
+    {"from":"docker-flyio","to":"database","type":"writes"}
+  ],
+  "flows": [
+    {"name":"Register + Login","trigger":"User submits registration + login form","steps":["frontend-web","auth-controller","user-repository","db-context","database"],"outcome":"New User row (BCrypt hash) created; login returns a signed JWT (1h expiry)."},
+    {"name":"Create account + transaction","trigger":"Authenticated user creates an account and adds a transaction","steps":["frontend-web","accounts-controller","account-service","account-repository","db-context","database","transaction-repository"],"outcome":"Account row created scoped to caller's userId; Transaction row added, balance recomputed."},
+    {"name":"Transfer between accounts","trigger":"Authenticated user transfers money between two of their accounts","steps":["frontend-web","accounts-controller","transfer-repository","db-context","database"],"outcome":"Two offsetting Transaction rows + one Transfer audit row written; unique IdempotencyKey index makes retries return the original transfer instead of double-processing."},
+    {"name":"Create recurring schedule","trigger":"Authenticated user creates a recurring schedule on one of their accounts","steps":["frontend-web","schedules-controller","account-service","account-repository","recurring-schedule-repository","db-context","database"],"outcome":"Account ownership verified before a new RecurringSchedule row is persisted."},
+    {"name":"Run integration tests","trigger":"CI or developer runs dotnet test","steps":["integration-tests","api-program","db-context","database"],"outcome":"WebApplicationFactory<Program> boots the real pipeline with INTEGRATION_TEST=true, routed to a throwaway per-run SQLite file."}
+  ]
+};
+
+const GROUP_COLOR = {
+  external:  {fill:"#3a1f33", stroke:"#e26fb0", text:"#f3b3d6"},
+  host:      {fill:"#3a2c12", stroke:"#e2a23a", text:"#f0c56e"},
+  controller:{fill:"#122a3a", stroke:"#5aa9ff", text:"#9cc9ff"},
+  service:   {fill:"#0f3330", stroke:"#3fc7b5", text:"#8fe3d8"},
+  repository:{fill:"#2a1f3a", stroke:"#a97ee2", text:"#cbaef0"},
+  model:     {fill:"#233018", stroke:"#8bbf4e", text:"#c1e197"},
+  data:      {fill:"#1c2340", stroke:"#7d8cf0", text:"#b6c0f7"},
+  store:     {fill:"#3a1414", stroke:"#e2543a", text:"#f0a494"},
+  app:       {fill:"#123334", stroke:"#3ac7c2", text:"#8fe4e0"},
+  test:      {fill:"#1e3a1f", stroke:"#5bd15f", text:"#a9edab"},
+  deploy:    {fill:"#262b33", stroke:"#8a97a6", text:"#c3cbd4"}
+};
+const GROUP_LABEL = {
+  external:"External system", host:"Host / entrypoint", controller:"Controller",
+  service:"Service", repository:"Repository", model:"Model / DTO",
+  data:"Data access (DbContext)", store:"Database", app:"Standalone app",
+  test:"Tests", deploy:"Deployment"
+};
+
+document.getElementById('gen-time').textContent = DATA.generated_at;
+document.getElementById('gen-commit').textContent = DATA.generated_from_commit.slice(0,10);
+
+// ---- adjacency ----
+const nodeById = Object.fromEntries(DATA.nodes.map(n=>[n.id,n]));
+const outgoing = {}, incoming = {};
+DATA.nodes.forEach(n=>{outgoing[n.id]=[];incoming[n.id]=[];});
+DATA.edges.forEach(e=>{outgoing[e.from].push(e); incoming[e.to].push(e);});
+
+// ---- simple force layout ----
+const W = 1600, H = 1000;
+const nodes = DATA.nodes.map((n,i)=>{
+  const angle = (i/DATA.nodes.length) * Math.PI*2;
+  return {...n, x: W/2 + Math.cos(angle)*500 + (Math.random()-.5)*40,
+                y: H/2 + Math.sin(angle)*350 + (Math.random()-.5)*40, vx:0, vy:0};
+});
+const nodeIdx = Object.fromEntries(nodes.map((n,i)=>[n.id,i]));
+const links = DATA.edges.map(e=>({...e, s: nodeIdx[e.from], t: nodeIdx[e.to]}));
+
+function simulate(iterations){
+  for(let it=0; it<iterations; it++){
+    // repulsion
+    for(let i=0;i<nodes.length;i++){
+      for(let j=i+1;j<nodes.length;j++){
+        let dx = nodes[i].x-nodes[j].x, dy = nodes[i].y-nodes[j].y;
+        let d2 = dx*dx+dy*dy || 0.01;
+        let d = Math.sqrt(d2);
+        let force = 26000 / d2;
+        let fx = (dx/d)*force, fy=(dy/d)*force;
+        nodes[i].vx += fx; nodes[i].vy += fy;
+        nodes[j].vx -= fx; nodes[j].vy -= fy;
+      }
+    }
+    // spring edges
+    links.forEach(l=>{
+      let a=nodes[l.s], b=nodes[l.t];
+      let dx=b.x-a.x, dy=b.y-a.y;
+      let d=Math.sqrt(dx*dx+dy*dy)||0.01;
+      let target = 230;
+      let force = (d-target)*0.02;
+      let fx=(dx/d)*force, fy=(dy/d)*force;
+      a.vx += fx; a.vy += fy;
+      b.vx -= fx; b.vy -= fy;
+    });
+    // gravity to center
+    nodes.forEach(n=>{
+      n.vx += (W/2-n.x)*0.0018;
+      n.vy += (H/2-n.y)*0.0018;
+      n.x += n.vx*0.55; n.y += n.vy*0.55;
+      n.vx *= 0.75; n.vy *= 0.75;
+    });
+  }
+}
+simulate(420);
+
+// ---- render ----
+const svg = document.getElementById('svg');
+const NS = "http://www.w3.org/2000/svg";
+function el(tag, attrs){
+  const e = document.createElementNS(NS, tag);
+  for(const k in attrs) e.setAttribute(k, attrs[k]);
+  return e;
+}
+
+const defs = el('defs',{});
+defs.innerHTML = `
+  <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+    <path d="M0,0 L10,5 L0,10 z" fill="#3a4655"></path>
+  </marker>
+  <marker id="arrow-hi" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+    <path d="M0,0 L10,5 L0,10 z" fill="#5aa9ff"></path>
+  </marker>
+  <marker id="arrow-flow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+    <path d="M0,0 L10,5 L0,10 z" fill="#ffb454"></path>
+  </marker>`;
+svg.appendChild(defs);
+
+const viewport = el('g',{id:'viewport'});
+svg.appendChild(viewport);
+const edgeLayer = el('g',{id:'edge-layer'});
+const nodeLayer = el('g',{id:'node-layer'});
+viewport.appendChild(edgeLayer);
+viewport.appendChild(nodeLayer);
+
+const NODE_W = 172, NODE_H = 50;
+
+function nodeCenter(n){ return {x:n.x, y:n.y}; }
+
+function edgePath(a,b){
+  const dx=b.x-a.x, dy=b.y-a.y;
+  const dist=Math.sqrt(dx*dx+dy*dy)||1;
+  const ux=dx/dist, uy=dy/dist;
+  const ax = a.x + ux*(NODE_W/2+2), ay = a.y + uy*(NODE_H/2+2);
+  const bx = b.x - ux*(NODE_W/2+8), by = b.y - uy*(NODE_H/2+8);
+  const mx=(ax+bx)/2, my=(ay+by)/2;
+  const nx = -uy*24, ny = ux*24;
+  return `M${ax},${ay} Q${mx+nx},${my+ny} ${bx},${by}`;
+}
+
+const edgeEls = links.map(l=>{
+  const a = nodes[l.s], b = nodes[l.t];
+  const path = el('path',{class:'edge', d: edgePath(a,b), 'data-from':l.from, 'data-to':l.to, 'data-type':l.type});
+  edgeLayer.appendChild(path);
+  return {l, path};
+});
+
+const nodeEls = nodes.map(n=>{
+  const g = el('g',{class:'node', 'data-id':n.id, transform:`translate(${n.x},${n.y})`});
+  const colors = GROUP_COLOR[n.group] || GROUP_COLOR.model;
+  const rect = el('rect',{x:-NODE_W/2, y:-NODE_H/2, width:NODE_W, height:NODE_H, rx:9,
+    fill:colors.fill, stroke:colors.stroke});
+  const label = el('text',{x:0, y:-4, 'text-anchor':'middle'});
+  label.textContent = n.label;
+  const sub = el('text',{class:'sub', x:0, y:12, 'text-anchor':'middle'});
+  sub.textContent = n.sublabel;
+  g.appendChild(rect); g.appendChild(label); g.appendChild(sub);
+  nodeLayer.appendChild(g);
+
+  let dragging=false, dragMoved=false, offx=0, offy=0;
+  g.addEventListener('mousedown', (ev)=>{
+    dragging=true; dragMoved=false;
+    ev.stopPropagation();
+    const p = toWorld(ev.clientX, ev.clientY);
+    offx = p.x - n.x; offy = p.y - n.y;
+  });
+  window.addEventListener('mousemove', (ev)=>{
+    if(!dragging) return;
+    dragMoved = true;
+    const p = toWorld(ev.clientX, ev.clientY);
+    n.x = p.x - offx; n.y = p.y - offy;
+    g.setAttribute('transform', `translate(${n.x},${n.y})`);
+    updateEdgesFor(n.id);
+  });
+  window.addEventListener('mouseup', ()=>{
+    if(dragging && !dragMoved) selectNode(n.id);
+    dragging=false;
+  });
+  return {n, g, rect};
+});
+
+function updateEdgesFor(id){
+  edgeEls.forEach(({l,path})=>{
+    if(l.from===id || l.to===id){
+      path.setAttribute('d', edgePath(nodes[l.s], nodes[l.t]));
+    }
+  });
+}
+
+// ---- pan/zoom ----
+let tx=0, ty=0, scale=0.62;
+function applyTransform(){
+  viewport.setAttribute('transform', `translate(${tx},${ty}) scale(${scale})`);
+}
+function fitInitial(){
+  tx = 40; ty = 30; scale = 0.6;
+  applyTransform();
+}
+fitInitial();
+
+function toWorld(clientX, clientY){
+  const rect = svg.getBoundingClientRect();
+  const sx = clientX - rect.left, sy = clientY - rect.top;
+  return { x: (sx - tx)/scale, y: (sy - ty)/scale };
+}
+
+let panning=false, panStart=null;
+svg.addEventListener('mousedown', (ev)=>{
+  if(ev.target !== svg) return;
+  panning=true; svg.classList.add('panning');
+  panStart = {x:ev.clientX, y:ev.clientY, tx, ty};
+});
+window.addEventListener('mousemove', (ev)=>{
+  if(!panning) return;
+  tx = panStart.tx + (ev.clientX-panStart.x);
+  ty = panStart.ty + (ev.clientY-panStart.y);
+  applyTransform();
+});
+window.addEventListener('mouseup', ()=>{ panning=false; svg.classList.remove('panning'); });
+
+svg.addEventListener('wheel', (ev)=>{
+  ev.preventDefault();
+  const before = toWorld(ev.clientX, ev.clientY);
+  scale *= (ev.deltaY < 0 ? 1.08 : 0.92);
+  scale = Math.max(0.15, Math.min(2.5, scale));
+  const rect = svg.getBoundingClientRect();
+  const sx = ev.clientX-rect.left, sy = ev.clientY-rect.top;
+  tx = sx - before.x*scale;
+  ty = sy - before.y*scale;
+  applyTransform();
+}, {passive:false});
+
+function zoomBy(f){
+  const rect = svg.getBoundingClientRect();
+  const cx = rect.width/2, cy = rect.height/2;
+  const before = toWorld(rect.left+cx, rect.top+cy);
+  scale *= f;
+  scale = Math.max(0.15, Math.min(2.5, scale));
+  tx = cx - before.x*scale;
+  ty = cy - before.y*scale;
+  applyTransform();
+}
+function resetView(){ fitInitial(); clearSelection(); }
+window.zoomBy = zoomBy; window.resetView = resetView;
+
+// ---- selection / highlighting ----
+let selectedId = null, activeFlowIdx = null;
+
+function clearSelection(){
+  selectedId = null; activeFlowIdx = null;
+  nodeEls.forEach(({g})=>g.classList.remove('dim','hi','selected'));
+  edgeEls.forEach(({path})=>path.classList.remove('dim','hi','flowhi'));
+  document.querySelectorAll('.flow-chip').forEach(c=>c.classList.remove('active'));
+  closePanel();
+}
+
+function selectNode(id){
+  activeFlowIdx = null;
+  document.querySelectorAll('.flow-chip').forEach(c=>c.classList.remove('active'));
+  selectedId = id;
+  const callers = incoming[id].map(e=>e.from);
+  const deps = outgoing[id].map(e=>e.to);
+  const related = new Set([id, ...callers, ...deps]);
+
+  nodeEls.forEach(({n,g})=>{
+    g.classList.toggle('dim', !related.has(n.id));
+    g.classList.toggle('hi', related.has(n.id) && n.id!==id);
+    g.classList.toggle('selected', n.id===id);
+  });
+  edgeEls.forEach(({l,path})=>{
+    const touches = l.from===id || l.to===id;
+    path.classList.toggle('dim', !touches);
+    path.classList.toggle('hi', touches);
+    path.classList.remove('flowhi');
+  });
+
+  showPanel(id, callers, deps);
+}
+
+function showPanel(id, callers, deps){
+  const n = nodeById[id];
+  const flowsFor = DATA.flows.filter(f=>f.steps.includes(id));
+  const body = document.getElementById('panel-body');
+  body.innerHTML = `
+    <span class="badge">${GROUP_LABEL[n.group]||n.role}</span>
+    <h2>${n.label}</h2>
+    <div class="path"><code>${n.path}</code></div>
+    <h4>Upstream callers (${callers.length})</h4>
+    ${callers.length ? `<ul>${callers.map(c=>`<li>${nodeById[c].label}</li>`).join('')}</ul>` : `<div class="empty">none</div>`}
+    <h4>Downstream dependencies (${deps.length})</h4>
+    ${deps.length ? `<ul>${[...new Set(deps)].map(d=>`<li>${nodeById[d].label}</li>`).join('')}</ul>` : `<div class="empty">none</div>`}
+    <h4>Related tests</h4>
+    ${(n.tests_display||[]).length ? '' : `<div class="empty">see codemap.json "tests" field</div>`}
+    <h4>Flows it belongs to (${flowsFor.length})</h4>
+    ${flowsFor.length ? `<ul>${flowsFor.map(f=>`<li>${f.name}</li>`).join('')}</ul>` : `<div class="empty">none</div>`}
+  `;
+  document.getElementById('panel').classList.add('show');
+}
+function closePanel(){ document.getElementById('panel').classList.remove('show'); }
+window.closePanel = closePanel;
+
+svg.addEventListener('click', (ev)=>{
+  if(ev.target === svg) clearSelection();
+});
+
+// ---- flows ----
+const flowListEl = document.getElementById('flow-list');
+DATA.flows.forEach((f, idx)=>{
+  const btn = document.createElement('button');
+  btn.className = 'flow-chip';
+  btn.innerHTML = `<strong>${f.name}</strong><br><span style="color:var(--muted)">${f.trigger}</span>`;
+  btn.onclick = ()=> highlightFlow(idx);
+  flowListEl.appendChild(btn);
+});
+
+function highlightFlow(idx){
+  selectedId = null;
+  document.getElementById('panel').classList.remove('show');
+  activeFlowIdx = idx;
+  const f = DATA.flows[idx];
+  document.querySelectorAll('.flow-chip').forEach((c,i)=>c.classList.toggle('active', i===idx));
+  const stepSet = new Set(f.steps);
+  const stepEdgeKeys = new Set();
+  for(let i=0;i<f.steps.length-1;i++) stepEdgeKeys.add(f.steps[i]+'->'+f.steps[i+1]);
+
+  nodeEls.forEach(({n,g})=>{
+    g.classList.toggle('dim', !stepSet.has(n.id));
+    g.classList.remove('hi','selected');
+  });
+  edgeEls.forEach(({l,path})=>{
+    const key = l.from+'->'+l.to;
+    const onPath = stepEdgeKeys.has(key);
+    path.classList.toggle('dim', !onPath);
+    path.classList.toggle('flowhi', onPath);
+    path.classList.remove('hi');
+  });
+
+  const body = document.getElementById('panel-body');
+  body.innerHTML = `
+    <span class="badge">flow</span>
+    <h2>${f.name}</h2>
+    <div class="path">${f.trigger}</div>
+    <h4>Path</h4>
+    <ul>${f.steps.map(s=>`<li>${nodeById[s].label}</li>`).join('')}</ul>
+    <h4>Outcome</h4>
+    <div>${f.outcome}</div>
+  `;
+  document.getElementById('panel').classList.add('show');
+}
+
+// ---- legend ----
+const legendList = document.getElementById('legend-list');
+Object.keys(GROUP_LABEL).forEach(g=>{
+  const c = GROUP_COLOR[g];
+  const row = document.createElement('div');
+  row.className='row';
+  row.innerHTML = `<span class="sw" style="background:${c.fill};border:1.5px solid ${c.stroke}"></span>${GROUP_LABEL[g]}`;
+  legendList.appendChild(row);
+});
+
+// ---- search ----
+document.getElementById('search').addEventListener('input', (ev)=>{
+  const q = ev.target.value.trim().toLowerCase();
+  if(!q){ clearSelection(); return; }
+  const matches = new Set(nodes.filter(n =>
+    n.label.toLowerCase().includes(q) ||
+    n.path.toLowerCase().includes(q) ||
+    n.role.toLowerCase().includes(q) ||
+    n.sublabel.toLowerCase().includes(q)
+  ).map(n=>n.id));
+
+  nodeEls.forEach(({n,g})=>{
+    g.classList.toggle('dim', !matches.has(n.id));
+    g.classList.toggle('hi', matches.has(n.id));
+    g.classList.remove('selected');
+  });
+  edgeEls.forEach(({l,path})=>{
+    const on = matches.has(l.from) && matches.has(l.to);
+    path.classList.toggle('dim', !on);
+    path.classList.remove('hi','flowhi');
+  });
+  document.querySelectorAll('.flow-chip').forEach(c=>c.classList.remove('active'));
+});
+</script>
+</body>
+</html>

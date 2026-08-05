@@ -1,0 +1,310 @@
+{
+  "generated_at": "2026-08-05T00:00:00Z",
+  "generated_from_commit": "ae8457f957b624799a09769f9ee590bb608e11c5",
+  "scope": [
+    "FinanceTracker.Api/",
+    "FinanceTracker/",
+    "FinanceTracker.Tests/",
+    "Dockerfile",
+    "docker-compose.yml",
+    "fly.toml",
+    "FinanceTracker.sln"
+  ],
+  "nodes": [
+    {
+      "id": "api-program",
+      "path": "FinanceTracker.Api/Program.cs",
+      "role": "ASP.NET Core host: DI container wiring, JWT auth, CORS, rate limiting, Swagger, health checks, middleware pipeline, DB provider selection (SQL Server / PostgreSQL / SQLite)",
+      "entrypoints": ["Program.cs top-level statements", "public partial class Program (WebApplicationFactory<Program> entry for tests)"],
+      "tests": ["FinanceTracker.Tests/Tests/HealthTests.cs", "FinanceTracker.Tests/Factories/FinanceTrackerFactory.cs"],
+      "constraints": [
+        "JwtSettings:SecretKey must be >= 32 chars or startup throws InvalidOperationException (Program.cs:172-177)",
+        "HTTPS/HSTS only enforced when not Development (Program.cs:192-196)",
+        "DB provider precedence: SqlServer > PostgreSQL > SQLite (Program.cs:56-68)"
+      ],
+      "evidence": ["FinanceTracker.Api/Program.cs:1-228"]
+    },
+    {
+      "id": "global-exception-handler",
+      "path": "FinanceTracker.Api/Middleware/GlobalExceptionHandler.cs",
+      "role": "Custom middleware catching unhandled exceptions, logging, and returning a JSON ErrorResponse (500)",
+      "entrypoints": ["GlobalExceptionHandler.InvokeAsync(HttpContext)"],
+      "tests": [],
+      "constraints": ["Exposes exception.Message only in Development env (GlobalExceptionHandler.cs:37)"],
+      "evidence": ["FinanceTracker.Api/Middleware/GlobalExceptionHandler.cs:22-45"]
+    },
+    {
+      "id": "auth-controller",
+      "path": "FinanceTracker.Api/Controllers/AuthController.cs",
+      "role": "Register/Login endpoints; issues JWTs; rate-limited",
+      "entrypoints": ["POST /api/auth/register", "POST /api/auth/login"],
+      "tests": ["FinanceTracker.Tests/Tests/AuthTests.cs"],
+      "constraints": [
+        "[EnableRateLimiting(\"login\")] 5 req/min per IP (AuthController.cs:26, Program.cs:92-103)",
+        "[EnableRateLimiting(\"register\")] 3 req/30min per IP (AuthController.cs:84, Program.cs:105-113)",
+        "Passwords hashed with BCrypt (AuthController.cs:118)"
+      ],
+      "evidence": ["FinanceTracker.Api/Controllers/AuthController.cs:1-126"]
+    },
+    {
+      "id": "accounts-controller",
+      "path": "FinanceTracker.Api/Controllers/AccountsController.cs",
+      "role": "CRUD for accounts, nested transactions, bulk-validate, and inter-account transfer; all endpoints require JWT + per-user ownership check via GetUserIdFromClaims()",
+      "entrypoints": [
+        "GET /api/accounts/{id}", "GET /api/accounts", "POST /api/accounts",
+        "POST /api/accounts/{id}/transactions", "GET /api/accounts/{id}/transactions",
+        "PUT /api/accounts/{id}", "DELETE /api/accounts/{id}",
+        "DELETE /api/accounts/{accountId}/transactions/{transactionId}",
+        "PUT /api/accounts/{accountId}/transactions/{transactionId}",
+        "POST /api/accounts/bulk-validate", "POST /api/accounts/transfer"
+      ],
+      "tests": ["FinanceTracker.Tests/Tests/TransferTests.cs", "FinanceTracker.Tests/Tests/IdempotencyTests.cs"],
+      "constraints": [
+        "[Authorize] via BaseApiController (BaseApiController.cs:7)",
+        "Self-transfer guarded before any DB call (AccountsController.cs:422-430)",
+        "GetUserIdFromClaims() returns null on bad/missing claim -> 401 (BaseApiController.cs:11-16)"
+      ],
+      "evidence": ["FinanceTracker.Api/Controllers/AccountsController.cs:1-504", "FinanceTracker.Api/Controllers/BaseApiController.cs:1-17"]
+    },
+    {
+      "id": "schedules-controller",
+      "path": "FinanceTracker.Api/Controllers/SchedulesController.cs",
+      "role": "CRUD for recurring schedules, scoped to the authenticated user and validated against account ownership",
+      "entrypoints": [
+        "GET /api/schedules", "GET /api/schedules/{id}", "DELETE /api/schedules/{id}",
+        "POST /api/schedules", "PUT /api/schedules/{id}"
+      ],
+      "tests": [],
+      "constraints": ["[Authorize] via BaseApiController", "Create validates target account belongs to caller (SchedulesController.cs:150-161)"],
+      "evidence": ["FinanceTracker.Api/Controllers/SchedulesController.cs:1-248"]
+    },
+    {
+      "id": "account-service",
+      "path": "FinanceTracker.Api/Application/Services/AccountService.cs",
+      "role": "Thin application-layer facade over IAccountRepository; adds pagination clamp for GetAll",
+      "entrypoints": ["IAccountService (FinanceTracker.Api/Application/IAccountService.cs)"],
+      "tests": [],
+      "constraints": ["pageSize clamped to [1,50] (AccountService.cs:39)"],
+      "evidence": ["FinanceTracker.Api/Application/Services/AccountService.cs:1-63", "FinanceTracker.Api/Application/IAccountService.cs:1-13"]
+    },
+    {
+      "id": "account-repository",
+      "path": "FinanceTracker.Api/Infrastructure/AccountRepository.cs",
+      "role": "EF Core data access for Account entities; ownership-scoped queries; balance projection via Transactions.Sum",
+      "entrypoints": ["IAccountRepository (FinanceTracker.Api/Domain/IAccountRepository.cs)"],
+      "tests": [],
+      "constraints": ["All reads/writes filtered by userId (AccountRepository.cs:32,46,56,64,74,80,96)"],
+      "evidence": ["FinanceTracker.Api/Infrastructure/AccountRepository.cs:1-106", "FinanceTracker.Api/Domain/IAccountRepository.cs:1-15"]
+    },
+    {
+      "id": "transaction-repository",
+      "path": "FinanceTracker.Api/Infrastructure/TransactionRepository.cs",
+      "role": "EF Core data access for Transaction entities nested under an Account; ownership verified via subquery against Accounts",
+      "entrypoints": ["ITransactionRepository (FinanceTracker.Api/Domain/ITransactionRepository.cs)"],
+      "tests": [],
+      "constraints": ["Ownership check via _context.Accounts.Any(...) subquery, not a join (TransactionRepository.cs:45,61,80,90)"],
+      "evidence": ["FinanceTracker.Api/Infrastructure/TransactionRepository.cs:1-121"]
+    },
+    {
+      "id": "transfer-repository",
+      "path": "FinanceTracker.Api/Infrastructure/TransferRepository.cs",
+      "role": "Executes an inter-account transfer as two offsetting Transaction rows plus a Transfer audit row; relies on a unique index on IdempotencyKey to dedupe concurrent retries",
+      "entrypoints": ["ITransferRepository (FinanceTracker.Api/Domain/ITransferRepository.cs)"],
+      "tests": ["FinanceTracker.Tests/Tests/TransferTests.cs", "FinanceTracker.Tests/Tests/IdempotencyTests.cs"],
+      "constraints": [
+        "Idempotency enforced at DB level: unique index on Transfer.IdempotencyKey (FinanceTrackerContext.cs:48-50); DbUpdateException on duplicate is caught and the existing transfer is returned (TransferRepository.cs:35-47)"
+      ],
+      "evidence": ["FinanceTracker.Api/Infrastructure/TransferRepository.cs:1-57"]
+    },
+    {
+      "id": "user-repository",
+      "path": "FinanceTracker.Api/Infrastructure/UserRepository.cs",
+      "role": "EF Core data access for User entities: create, lookup by email, existence check",
+      "entrypoints": ["IUserRepository (FinanceTracker.Api/Domain/IUserRepository.cs)"],
+      "tests": ["FinanceTracker.Tests/Tests/AuthTests.cs"],
+      "constraints": ["Unique index on User.Email (FinanceTrackerContext.cs:58-60)"],
+      "evidence": ["FinanceTracker.Api/Infrastructure/UserRepository.cs:1-38"]
+    },
+    {
+      "id": "recurring-schedule-repository",
+      "path": "FinanceTracker.Api/Infrastructure/RecurringScheduleRepository.cs",
+      "role": "EF Core data access for RecurringSchedule entities; read methods use AsNoTracking since callers don't mutate in the same context scope for GetAll/GetById",
+      "entrypoints": ["IRecurringScheduleRepository (FinanceTracker.Api/Domain/IRecurringScheduleRepository.cs)"],
+      "tests": [],
+      "constraints": [],
+      "evidence": ["FinanceTracker.Api/Infrastructure/RecurringScheduleRepository.cs:1-53"]
+    },
+    {
+      "id": "dtos",
+      "path": "FinanceTracker.Api/Application/DTOs/",
+      "role": "Request/response contracts (CreateAccountRequest, UpdateTransactionRequest, PagedResponse<T>, ErrorResponse, AccountSummary, TransferRequest, etc.) consumed by controllers and returned by repositories/services",
+      "entrypoints": [],
+      "tests": [],
+      "constraints": ["Update DTOs use nullable fields for partial-update (PATCH-like PUT) semantics, e.g. UpdateTransactionRequest.cs, UpdateScheduleRequest.cs"],
+      "evidence": ["FinanceTracker.Api/Application/DTOs/PagedResponse.cs", "FinanceTracker.Api/Application/DTOs/ErrorResponse.cs", "FinanceTracker.Api/Application/DTOs/UpdateTransactionRequest.cs"]
+    },
+    {
+      "id": "domain-models",
+      "path": "FinanceTracker/Models/",
+      "role": "EF Core entity classes shared by API and Console: Account, Transaction, Transfer, User, RecurringSchedule",
+      "entrypoints": [],
+      "tests": [],
+      "constraints": [
+        "Account.Transactions is EF-owned collection navigation, exposed read-only via private setter + [JsonInclude] (Account.cs:9)",
+        "Amount fields use HasPrecision(18,2) in OnModelCreating (FinanceTrackerContext.cs:69-78)"
+      ],
+      "evidence": ["FinanceTracker/Models/Account.cs:1-121", "FinanceTracker/Models/Transaction.cs:1-16", "FinanceTracker/Models/RecurringSchedule.cs:1-35"]
+    },
+    {
+      "id": "db-context",
+      "path": "FinanceTracker/FinanceTrackerContext.cs",
+      "role": "EF Core DbContext: DbSets, relationship/constraint configuration (cascade/restrict deletes, unique indexes, precision), migrations",
+      "entrypoints": ["FinanceTrackerContext (parameterless ctor for Console, DbContextOptions ctor for API/tests)"],
+      "tests": ["FinanceTracker.Tests/Factories/FinanceTrackerFactory.cs"],
+      "constraints": [
+        "Transfer.FromAccount/ToAccount use DeleteBehavior.Restrict (FinanceTrackerContext.cs:33-42)",
+        "Transaction->Account uses DeleteBehavior.Cascade (FinanceTrackerContext.cs:52-56)",
+        "Unique index Transfer.IdempotencyKey (FinanceTrackerContext.cs:48-50)",
+        "Unique index User.Email (FinanceTrackerContext.cs:58-60)",
+        "Default OnConfiguring falls back to SQLite Console/finance.db when options aren't supplied (FinanceTrackerContext.cs:21-28), used only by the Console app"
+      ],
+      "evidence": ["FinanceTracker/FinanceTrackerContext.cs:1-80", "FinanceTracker/Migrations/"]
+    },
+    {
+      "id": "database",
+      "path": "external",
+      "role": "Relational database: SQLite (dev/console/tests), PostgreSQL/Neon (prod default), SQL Server (alternate provider) — selected at startup by connection-string presence",
+      "entrypoints": [],
+      "tests": [],
+      "constraints": ["Provider selection order in Program.cs:56-68"],
+      "evidence": ["FinanceTracker.Api/Program.cs:56-68", "docker-compose.yml:1-9", "FinanceTracker.Api/appsettings.json"]
+    },
+    {
+      "id": "console-app",
+      "path": "FinanceTracker/Console/",
+      "role": "Standalone CLI (Layer 1/2 learning app) that reads/writes the same FinanceTrackerContext directly, bypassing the API/HTTP layer entirely",
+      "entrypoints": ["FinanceTracker/Console/Program.cs top-level statements"],
+      "tests": [],
+      "constraints": ["Runs Database.Migrate() itself and seeds a default console user/account (Console/Program.cs:7-42)", "Not reachable from the API process — separate executable"],
+      "evidence": ["FinanceTracker/Console/Program.cs:1-60"]
+    },
+    {
+      "id": "integration-tests",
+      "path": "FinanceTracker.Tests/",
+      "role": "xUnit + WebApplicationFactory<Program> integration tests exercising the real HTTP pipeline against an isolated per-run SQLite file",
+      "entrypoints": ["FinanceTracker.Tests/Tests/*.cs"],
+      "tests": [],
+      "constraints": [
+        "INTEGRATION_TEST=true env var forces Program.cs to skip Postgres/SqlServer connection strings (Program.cs:49-54, FinanceTrackerFactory.cs:17,26)",
+        "Each factory instance gets a unique SQLite file, deleted on Dispose (FinanceTrackerFactory.cs:13,44-47)"
+      ],
+      "evidence": ["FinanceTracker.Tests/Factories/FinanceTrackerFactory.cs:1-52", "FinanceTracker.Tests/Tests/TransferTests.cs", "FinanceTracker.Tests/Tests/AuthTests.cs", "FinanceTracker.Tests/Tests/HealthTests.cs", "FinanceTracker.Tests/Tests/IdempotencyTests.cs"]
+    },
+    {
+      "id": "frontend-web",
+      "path": "external:A:\\MyProjects\\financetracker.web",
+      "role": "Separate Next.js 15/TypeScript frontend repo that consumes the API over HTTP; not part of this git repo (own git history, own CLAUDE.md)",
+      "entrypoints": [],
+      "tests": [],
+      "constraints": ["CORS origin must be present in Cors:AllowedOrigins (Program.cs:80-88)"],
+      "evidence": ["unknown - separate repository, not indexed by this codemap; relationship inferred from Cors:AllowedOrigins config and MEMORY.md project notes"]
+    },
+    {
+      "id": "docker-flyio",
+      "path": "Dockerfile, docker-compose.yml, fly.toml",
+      "role": "Container build and deployment config: Dockerfile builds the API image, docker-compose runs API + local Postgres for dev, fly.toml deploys to Fly.io",
+      "entrypoints": [],
+      "tests": [],
+      "constraints": ["JwtSettings__SecretKey in docker-compose.yml is a hardcoded dev-only secret, not used in the Fly.io deploy (per project memory)"],
+      "evidence": ["Dockerfile", "docker-compose.yml:1-21", "fly.toml"]
+    }
+  ],
+  "edges": [
+    { "from": "frontend-web", "to": "auth-controller", "type": "calls", "evidence": "unknown - inferred from Cors:AllowedOrigins config (Program.cs:80-88); frontend repo not indexed" },
+    { "from": "frontend-web", "to": "accounts-controller", "type": "calls", "evidence": "unknown - inferred from Cors:AllowedOrigins config (Program.cs:80-88); frontend repo not indexed" },
+    { "from": "frontend-web", "to": "schedules-controller", "type": "calls", "evidence": "unknown - inferred from Cors:AllowedOrigins config (Program.cs:80-88); frontend repo not indexed" },
+
+    { "from": "api-program", "to": "global-exception-handler", "type": "calls", "evidence": "FinanceTracker.Api/Program.cs:188" },
+    { "from": "api-program", "to": "db-context", "type": "imports", "evidence": "FinanceTracker.Api/Program.cs:56-68" },
+    { "from": "api-program", "to": "account-repository", "type": "imports", "evidence": "FinanceTracker.Api/Program.cs:70" },
+    { "from": "api-program", "to": "transaction-repository", "type": "imports", "evidence": "FinanceTracker.Api/Program.cs:71" },
+    { "from": "api-program", "to": "account-service", "type": "imports", "evidence": "FinanceTracker.Api/Program.cs:72" },
+    { "from": "api-program", "to": "transfer-repository", "type": "imports", "evidence": "FinanceTracker.Api/Program.cs:73" },
+    { "from": "api-program", "to": "user-repository", "type": "imports", "evidence": "FinanceTracker.Api/Program.cs:74" },
+    { "from": "api-program", "to": "recurring-schedule-repository", "type": "imports", "evidence": "FinanceTracker.Api/Program.cs:75" },
+    { "from": "api-program", "to": "auth-controller", "type": "calls", "evidence": "FinanceTracker.Api/Program.cs:202 app.MapControllers() (ASP.NET reflection-based routing, not a direct reference)" },
+    { "from": "api-program", "to": "accounts-controller", "type": "calls", "evidence": "FinanceTracker.Api/Program.cs:202 app.MapControllers() (ASP.NET reflection-based routing, not a direct reference)" },
+    { "from": "api-program", "to": "schedules-controller", "type": "calls", "evidence": "FinanceTracker.Api/Program.cs:202 app.MapControllers() (ASP.NET reflection-based routing, not a direct reference)" },
+
+    { "from": "auth-controller", "to": "user-repository", "type": "calls", "evidence": "FinanceTracker.Api/Controllers/AuthController.cs:46,105,120" },
+
+    { "from": "accounts-controller", "to": "account-service", "type": "calls", "evidence": "FinanceTracker.Api/Controllers/AccountsController.cs:51,79,115,254,293,449,450" },
+    { "from": "accounts-controller", "to": "transaction-repository", "type": "calls", "evidence": "FinanceTracker.Api/Controllers/AccountsController.cs:162,210,211,321,345" },
+    { "from": "accounts-controller", "to": "transfer-repository", "type": "calls", "evidence": "FinanceTracker.Api/Controllers/AccountsController.cs:439,493" },
+    { "from": "accounts-controller", "to": "dtos", "type": "imports", "evidence": "FinanceTracker.Api/Controllers/AccountsController.cs:1-4" },
+
+    { "from": "schedules-controller", "to": "recurring-schedule-repository", "type": "calls", "evidence": "FinanceTracker.Api/Controllers/SchedulesController.cs:37,66,104,117,174,244" },
+    { "from": "schedules-controller", "to": "account-service", "type": "calls", "evidence": "FinanceTracker.Api/Controllers/SchedulesController.cs:150" },
+    { "from": "schedules-controller", "to": "domain-models", "type": "imports", "evidence": "FinanceTracker.Api/Controllers/SchedulesController.cs:163-172 new RecurringSchedule(...)" },
+
+    { "from": "account-service", "to": "account-repository", "type": "calls", "evidence": "FinanceTracker.Api/Application/Services/AccountService.cs:18,25,32,43,50,57" },
+
+    { "from": "account-repository", "to": "db-context", "type": "writes", "evidence": "FinanceTracker.Api/Infrastructure/AccountRepository.cs:22-24,36-38,100-102" },
+    { "from": "account-repository", "to": "db-context", "type": "reads", "evidence": "FinanceTracker.Api/Infrastructure/AccountRepository.cs:45-51,55-60,64-69,77-91" },
+    { "from": "account-repository", "to": "dtos", "type": "imports", "evidence": "FinanceTracker.Api/Infrastructure/AccountRepository.cs:84-89 AccountSummaryDto projection" },
+
+    { "from": "transaction-repository", "to": "db-context", "type": "writes", "evidence": "FinanceTracker.Api/Infrastructure/TransactionRepository.cs:34-38,51-53,72-73" },
+    { "from": "transaction-repository", "to": "db-context", "type": "reads", "evidence": "FinanceTracker.Api/Infrastructure/TransactionRepository.cs:43-47,59-63,78-97" },
+    { "from": "transaction-repository", "to": "domain-models", "type": "imports", "evidence": "FinanceTracker.Api/Infrastructure/TransactionRepository.cs:30 new Transaction(...)" },
+
+    { "from": "transfer-repository", "to": "db-context", "type": "writes", "evidence": "FinanceTracker.Api/Infrastructure/TransferRepository.cs:29-38" },
+    { "from": "transfer-repository", "to": "db-context", "type": "reads", "evidence": "FinanceTracker.Api/Infrastructure/TransferRepository.cs:43-46,52-53" },
+    { "from": "transfer-repository", "to": "domain-models", "type": "imports", "evidence": "FinanceTracker.Api/Infrastructure/TransferRepository.cs:19-27 new Transfer, Account.AddTransaction" },
+
+    { "from": "user-repository", "to": "db-context", "type": "writes", "evidence": "FinanceTracker.Api/Infrastructure/UserRepository.cs:23-24" },
+    { "from": "user-repository", "to": "db-context", "type": "reads", "evidence": "FinanceTracker.Api/Infrastructure/UserRepository.cs:29-31,34-36" },
+
+    { "from": "recurring-schedule-repository", "to": "db-context", "type": "writes", "evidence": "FinanceTracker.Api/Infrastructure/RecurringScheduleRepository.cs:17-19,26-28,49-51" },
+    { "from": "recurring-schedule-repository", "to": "db-context", "type": "reads", "evidence": "FinanceTracker.Api/Infrastructure/RecurringScheduleRepository.cs:33-37,41-44" },
+
+    { "from": "db-context", "to": "domain-models", "type": "imports", "evidence": "FinanceTracker/FinanceTrackerContext.cs:6-10 DbSet<Account|Transaction|Transfer|User|RecurringSchedule>" },
+    { "from": "db-context", "to": "database", "type": "writes", "evidence": "FinanceTracker.Api/Program.cs:56-68 UseSqlServer/UseNpgsql/UseSqlite" },
+    { "from": "db-context", "to": "database", "type": "reads", "evidence": "FinanceTracker.Api/Program.cs:56-68 UseSqlServer/UseNpgsql/UseSqlite" },
+
+    { "from": "console-app", "to": "db-context", "type": "imports", "evidence": "FinanceTracker/Console/Program.cs:5 new FinanceTrackerContext()" },
+    { "from": "console-app", "to": "domain-models", "type": "imports", "evidence": "FinanceTracker/Console/Program.cs:12-38 new User(...), new Account(...)" },
+
+    { "from": "integration-tests", "to": "api-program", "type": "calls", "evidence": "FinanceTracker.Tests/Factories/FinanceTrackerFactory.cs:11 WebApplicationFactory<Program>" },
+    { "from": "integration-tests", "to": "db-context", "type": "writes", "evidence": "FinanceTracker.Tests/Factories/FinanceTrackerFactory.cs:28-36 ConfigureTestServices overrides DbContext with per-run SQLite" },
+
+    { "from": "docker-flyio", "to": "api-program", "type": "imports", "evidence": "Dockerfile (builds FinanceTracker.Api.csproj)" },
+    { "from": "docker-flyio", "to": "database", "type": "writes", "evidence": "docker-compose.yml:2-9 provisions local postgres service" }
+  ],
+  "flows": [
+    {
+      "trigger": "User submits registration + login form on the frontend",
+      "steps": ["frontend-web", "auth-controller", "user-repository", "db-context", "database"],
+      "outcome": "New User row created (BCrypt-hashed password); login returns a signed JWT (1h expiry) that the frontend attaches as a Bearer token to subsequent requests"
+    },
+    {
+      "trigger": "Authenticated user creates an account and adds a transaction",
+      "steps": ["frontend-web", "accounts-controller", "account-service", "account-repository", "db-context", "database", "transaction-repository"],
+      "outcome": "Account row created scoped to the caller's userId; Transaction row added under that account, updating its computed balance"
+    },
+    {
+      "trigger": "Authenticated user transfers money between two of their accounts",
+      "steps": ["frontend-web", "accounts-controller", "transfer-repository", "db-context", "database"],
+      "outcome": "Two offsetting Transaction rows plus one Transfer audit row are written atomically per request; a retried request with the same IdempotencyKey hits the unique index, catches DbUpdateException, and returns the original Transfer instead of double-processing"
+    },
+    {
+      "trigger": "Authenticated user creates a recurring schedule against one of their accounts",
+      "steps": ["frontend-web", "schedules-controller", "account-service", "account-repository", "recurring-schedule-repository", "db-context", "database"],
+      "outcome": "SchedulesController verifies the target account belongs to the caller before persisting a new RecurringSchedule row"
+    },
+    {
+      "trigger": "CI or developer runs `dotnet test`",
+      "steps": ["integration-tests", "api-program", "db-context", "database"],
+      "outcome": "WebApplicationFactory<Program> boots the real ASP.NET pipeline with INTEGRATION_TEST=true, routing all connection-string selection to a throwaway per-run SQLite file so tests never touch Postgres/SQL Server"
+    }
+  ]
+}

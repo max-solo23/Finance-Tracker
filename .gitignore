@@ -44,3 +44,5 @@ memory-tool.db
 .omc
 .playwright-mcp
 .github
+.omx
+node_modules

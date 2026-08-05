@@ -1,0 +1,78 @@
+<svg xmlns="http://www.w3.org/2000/svg"
+     width="1200" height="320" viewBox="0 0 1200 320"
+     role="img" aria-labelledby="hero-title hero-desc">
+  <title id="hero-title">Finance Tracker</title>
+  <desc id="hero-desc">A .NET 9 REST API for tracking accounts, transactions, and recurring transfers, shown alongside its four-layer architecture: API, Application, Domain, and Infrastructure.</desc>
+
+  <rect width="1200" height="320" rx="20" fill="#0B0D12"/>
+
+  <g font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif">
+    <!-- Left: identity -->
+    <g transform="translate(56 0)">
+      <text x="0" y="54" font-family="ui-monospace, SFMono-Regular, Menlo, monospace"
+            font-size="14" letter-spacing="1.6" fill="#7C8496">REST API &#183; .NET 9 &#183; ASP.NET CORE</text>
+
+      <text x="0" y="118" font-size="52" font-weight="700" fill="#ECEEF2">Finance Tracker</text>
+
+      <text x="0" y="152" font-size="18" fill="#B7BCC6">Accounts, transactions, and recurring transfers &#8212;</text>
+      <text x="0" y="176" font-size="18" fill="#B7BCC6">real JWT auth, claim-based ownership, multi-DB support.</text>
+
+      <rect x="0" y="200" width="470" height="40" rx="8" fill="#12151C" stroke="#232838"/>
+      <text x="16" y="225" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="14">
+        <tspan fill="#5B6272">$</tspan>
+        <tspan fill="#F5A623" font-weight="700"> POST</tspan>
+        <tspan fill="#ECEEF2"> /api/accounts/1/transactions</tspan>
+      </text>
+
+      <g font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="12" fill="#9AA1AF">
+        <rect x="0" y="266" width="98" height="26" rx="13" fill="#12151C" stroke="#232838"/>
+        <text x="49" y="283" text-anchor="middle">PostgreSQL</text>
+
+        <rect x="108" y="266" width="86" height="26" rx="13" fill="#12151C" stroke="#232838"/>
+        <text x="151" y="283" text-anchor="middle">SQL Server</text>
+
+        <rect x="204" y="266" width="70" height="26" rx="13" fill="#12151C" stroke="#232838"/>
+        <text x="239" y="283" text-anchor="middle">SQLite</text>
+
+        <rect x="284" y="266" width="66" height="26" rx="13" fill="#12151C" stroke="#232838"/>
+        <text x="317" y="283" text-anchor="middle">Docker</text>
+      </g>
+    </g>
+
+    <!-- Right: real four-layer architecture -->
+    <g transform="translate(700 0)">
+      <text x="0" y="54" font-family="ui-monospace, SFMono-Regular, Menlo, monospace"
+            font-size="14" letter-spacing="1.6" fill="#7C8496">REQUEST FLOW</text>
+
+      <!-- connecting spine -->
+      <line x1="190" y1="114" x2="190" y2="126" stroke="#232838" stroke-width="2"/>
+      <line x1="190" y1="172" x2="190" y2="184" stroke="#232838" stroke-width="2"/>
+      <line x1="190" y1="230" x2="190" y2="242" stroke="#232838" stroke-width="2"/>
+
+      <g>
+        <rect x="0" y="68" width="380" height="46" rx="10" fill="#12151C" stroke="#232838"/>
+        <rect x="0" y="68" width="4" height="46" rx="2" fill="#34D399"/>
+        <text x="16" y="87" font-size="15" font-weight="600" fill="#ECEEF2">API Layer</text>
+        <text x="16" y="104" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="11" fill="#7C8496">Controllers &#183; Auth &#183; Rate limiting</text>
+      </g>
+
+      <g>
+        <rect x="0" y="126" width="380" height="46" rx="10" fill="#12151C" stroke="#232838"/>
+        <text x="16" y="145" font-size="15" font-weight="600" fill="#ECEEF2">Application Layer</text>
+        <text x="16" y="162" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="11" fill="#7C8496">Services &#183; DTOs &#183; Validation</text>
+      </g>
+
+      <g>
+        <rect x="0" y="184" width="380" height="46" rx="10" fill="#12151C" stroke="#232838"/>
+        <text x="16" y="203" font-size="15" font-weight="600" fill="#ECEEF2">Domain Layer</text>
+        <text x="16" y="220" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="11" fill="#7C8496">Account &#183; Transaction &#183; User</text>
+      </g>
+
+      <g>
+        <rect x="0" y="242" width="380" height="46" rx="10" fill="#12151C" stroke="#232838"/>
+        <text x="16" y="261" font-size="15" font-weight="600" fill="#ECEEF2">Infrastructure Layer</text>
+        <text x="16" y="278" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="11" fill="#7C8496">EF Core &#183; Repositories &#183; DbContext</text>
+      </g>
+    </g>
+  </g>
+</svg>
